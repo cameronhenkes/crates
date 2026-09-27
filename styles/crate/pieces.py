@@ -96,7 +96,7 @@ def wall_piece(length, c, face):
     return wrap(length, h, "".join(o))
 
 
-def panel_art(w, h, c, cols, rows, rim="top"):
+def panel_art(w, h, c, cols, rows, rim="top", radius=None):
     """A crate panel in the FRONT's vocabulary, at any aspect.
 
     An earlier version drew the walls with the piano-key slots seen in the
@@ -109,7 +109,7 @@ def panel_art(w, h, c, cols, rows, rim="top"):
     from generate import G
     sw, sh, sr = G["SLOT_W"], G["SLOT_H"], G["SLOT_R"]
     bev = 3.2
-    r = min(G["R_BR"], w * 0.09, h * 0.09)
+    r = radius if radius is not None else min(G["R_BR"], w * 0.09, h * 0.09)
     rail = max(46, w * 0.115)
     flange = max(18, h * 0.030)
     foot = max(40, h * 0.115)
@@ -318,7 +318,7 @@ def main():
     # lower than the end walls is normal on a real crate anyway.
     SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"] - 39
     # the side spans the base between the front and back walls
-    (out / "side.svg").write_text(panel_art(DEPTH - 38, SIDE_H, c, 7, 4))
+    (out / "side.svg").write_text(panel_art(DEPTH - 38, SIDE_H, c, 7, 4, radius=6))
     # the floor and the long rim span the FOOTPRINT, not the front's
     # width -- the sides sit outboard, so it is W + WALL_T
     foot = G["W"] + 39

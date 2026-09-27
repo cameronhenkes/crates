@@ -734,3 +734,55 @@ frames of the sequence.
 During the fold the rim is a band slightly wider than the front with
 near-square corners. That is the crate's base and is only on screen while the
 front is visibly falling, never at rest.
+
+## Solid walls, latches, and folding the way a hand does it
+
+### The renders had been cropping the crate
+The canvas is 460 wide and the review harness rendered a 440 viewport, so the
+right-hand side of the crate was outside every frame. Every right-hand corner
+reported as checked before this point was never in shot.
+`review-frames.py` replaces the shell script: 580 wide, locates the crate in
+each frame, and crops every frame to one shared window.
+
+### Walls are solid slabs
+A corner check on real corners showed each side wall as two thin blades with
+a gap. Thickness had been faked with two textured sheets a wall-thickness
+apart and nothing joining them. Every wall is now an `ExtrudeGeometry` of its
+own outline -- the folder silhouette for the front, the body for the back, a
+square-cornered rectangle for the sides -- so the edges are real and follow
+the shape. Faces keep the artwork and its cut-through perforations.
+
+### The latch, from the reference panel
+- at each end of an end wall, in its upper third
+- a spring tongue moulded into the wall; a stepped slot around it lets it flex
+- a round catch on the tongue that clicks into the side wall
+- grip ridges on the outer edge
+- along the bottom edge, hinge knuckles alternating with wider support ledges
+
+The end walls carry the latches. The sides carry none, which is why they fold
+freely once the ends are down.
+
+### Timing, in milliseconds
+
+| wall | press | snap | lower |
+|---|---|---|---|
+| front | 0-130 | 130-240 | 240-760 |
+| back | 640-770 | 770-880 | 880-1400 |
+| left | folds 1300-1720 | | |
+| right | folds 1470-1890 | | |
+
+- **press**: the tongues squeeze in 9 units; the wall moves 2% of its travel,
+  because it is still held
+- **snap**: the catch clears and the wall jumps to 15%, fast, ease-out
+- **lower**: placed down over 520 ms on a sine ease, slowing as it lands
+- **sides**: one 420 ms motion each, overlapping
+
+No overshoot anywhere, per the house rule that bounce is always 0. The snap
+reads from the speed change, not from a rebound.
+
+### Known simplifications
+- The tongue slides inward rather than flexing about its root.
+- Unfolding is the fold played backwards, so the latch "clicks" at the end of
+  raising rather than being pushed home.
+- While the base fades in (roughly 40 to 230 ms) it passes through a darker
+  half-transparent state.
