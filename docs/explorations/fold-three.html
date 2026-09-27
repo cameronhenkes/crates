@@ -101,11 +101,13 @@ function mat(url, shade, flipX){
 function wall(w, h, url, hinge, rot, lift, shade, flipX){
   const pivot = new THREE.Group();
   pivot.position.copy(hinge);
-  // Real walls have thickness, so a folded crate is a stack, not a pile of
-  // coincident planes. Lifting each wall by the thickness of the ones that
-  // folded before it gives the correct stacking order AND separates them in
-  // depth, which is the other half of the jitter fix.
-  pivot.position.y += lift || 0;
+  // A folded crate is a stack, so each wall ends up raised by the thickness
+  // of the ones folded before it. But that lift belongs to the FOLDED state
+  // only -- baking it into the pivot left every wall hovering above the floor
+  // while upright, the right one by 52 units, which read as walls sitting
+  // free and unattached. apply() rides it in with the fold instead.
+  pivot.userData.lift = lift || 0;
+  pivot.userData.baseY = pivot.position.y;
   // NOT a box. A box's edge faces are solid rectangles that ignore the
   // texture's alpha cutout, so the folder silhouette ended up wrapped in a
   // rectangular bar -- which is where the phantom second tab came from.
@@ -125,7 +127,11 @@ function wall(w, h, url, hinge, rot, lift, shade, flipX){
   return pivot;
 }
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(W - R*0.4, D - R*0.4), mat(TEX["floor.png"], false));
+// The floor has to reach the walls that hinge on it. It was 875 wide while
+// the sides hinge at +/-456.5, so they were pivoting about 20 units beyond
+// its edge -- hinged in mid-air, which is what read as sides sitting free.
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(SIDE_X * 2, D - R*0.4), mat(TEX["floor.png"], false));
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
@@ -166,7 +172,9 @@ const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
 
 function apply(t){
   for (const b of BEATS){
-    b.o.rotation[b.axis] = b.to * ease(clamp01((t - b.at) / SPAN));
+    const prog = ease(clamp01((t - b.at) / SPAN));
+    b.o.rotation[b.axis] = b.to * prog;
+    b.o.position.y = b.o.userData.baseY + b.o.userData.lift * prog;
   }
   // The camera lifts across the WHOLE fold, not the first half. Reaching
   // its final angle by 55% meant the viewpoint had stopped moving while

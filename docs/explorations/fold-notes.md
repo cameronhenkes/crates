@@ -538,3 +538,25 @@ exactly that state. I described them as "back down, both sides still
 standing" and read it as correct sequencing. It is correct sequencing, and it
 still looks broken — a frame review that only checks whether the right thing
 is happening will miss whether it looks right while it happens.
+
+## Walls sitting free — two separate bugs
+
+Cameron: "some sides are sitting entirely free and not connected at all."
+Correct, twice over, and both were mine.
+
+**The stack lift was baked in.** A folded crate is a stack, so each wall is
+raised by the thickness of the ones folded before it. I added that lift to
+the pivot's position at construction, so it applied *always* — every wall
+hovered above the floor even while upright, the right one by 52 units, ~8% of
+the crate's height. `apply()` now rides the lift in with the fold, so a
+standing wall sits on the floor and only rises as it lies down.
+
+**The floor did not reach its own hinges.** It was `W - R*0.4` = 875 wide,
+half-width 437, while the sides hinge at `SIDE_X` = 456.5. They were pivoting
+about 20 units beyond the floor's edge — hinged in mid-air. The floor is now
+`SIDE_X * 2` so its edge and the hinge line coincide.
+
+Verified across ten instants (`fold-dense-frames.png`) and at the three that
+were worst, 0.36 / 0.48 / 0.60 (`fold-hinge-check.png`). The sides still read
+as thin slivers around 0.48 because they are near edge-on there, but they are
+attached.
