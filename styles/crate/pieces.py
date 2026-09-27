@@ -92,72 +92,86 @@ def wall_piece(length, c, face):
 
 
 def panel_art(w, h, c, cols, rows, rim="top"):
-    """A crate panel in the SAME visual language as the front.
+    """A crate WALL, drawn from the reference photo rather than from the floor.
 
-    The sides were previously a generic ribbed rectangle I invented, which is
-    why they did not read as the same object. This reuses the front's actual
-    vocabulary: the double frame, the perforation grid with its lit well and
-    shadow bevel, the rim, and the folded-wall ladder down each edge.
+    The floor and the walls do not share a pattern, which is what the earlier
+    version got wrong. A wall is: a rim along the top, a band of tall slots
+    with tapered ribs between them running up into that rim, then a smooth
+    rail across the bottom carrying small raised feet, and a corner post at
+    each end.
     """
-    from generate import G
-    sw, sh, sr = G["SLOT_W"], G["SLOT_H"], G["SLOT_R"]
-    bev, rail = 3.2, 46
-    o = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="14" fill="{c["base"]}"/>']
+    post = max(18, w * 0.035)
+    rim_h = h * 0.050
+    # slots run up INTO the rim with no gap, as they do on the real crate,
+    # and they run deeper than the first attempt allowed
+    slot_top, slot_bot = rim_h, h * 0.72
+    rail_y = h * 0.735
+    # Only the top edge of a wall is a free edge. Its vertical edges butt
+    # against the neighbouring walls, so a radius there opens a notch at
+    # every corner -- which is what made the corners look unjoined.
+    o = [f'<path d="M 0,{h} L 0,10 A 10,10 0 0 1 10,0 L {w-10},0 '
+         f'A 10,10 0 0 1 {w},10 L {w},{h} Z" fill="{c["base"]}"/>']
 
-    # the ladder of recesses down each long edge, as on the crate's walls
-    n = max(3, int(h / 96))
-    pitch = (h - 40) / n
+    # the slot band: tall openings separated by ribs that taper toward the rim,
+    # which is what gives the real crate its piano-key look
+    n = max(7, int(w / 58))
+    pitch = (w - post * 2) / n
+    sw = pitch * 0.62
     for i in range(n):
-        ry, rh = 20 + i * pitch + 4, pitch - 12
-        for rx in (10, w - rail + 10):
-            o.append(f'<rect x="{rx}" y="{ry:.1f}" width="{rail-20}" '
-                     f'height="{rh:.1f}" rx="4" fill="{c["edge"]}" fill-opacity=".55"/>')
-            o.append(f'<rect x="{rx}" y="{ry-2:.1f}" width="{rail-20}" '
-                     f'height="{rh:.1f}" rx="4" fill="none" stroke="{c["hi"]}" '
-                     f'stroke-width="2" stroke-opacity=".45"/>')
+        x = post + i * pitch + (pitch - sw) / 2
+        o.append(f'<path d="M {x:.1f},{slot_top:.1f} '
+                 f'L {x + sw:.1f},{slot_top:.1f} '
+                 f'L {x + sw:.1f},{slot_bot - sw/2:.1f} '
+                 f'A {sw/2:.1f},{sw/2:.1f} 0 0 1 {x:.1f},{slot_bot - sw/2:.1f} Z" '
+                 f'fill="{c["cav"]}"/>')
+        # ribs catch light on their left edge and fall away to the right
+        rx = x + sw
+        o.append(f'<path d="M {rx:.1f},{slot_top:.1f} '
+                 f'L {rx + pitch - sw:.1f},{slot_top:.1f} '
+                 f'L {rx + pitch - sw - 2:.1f},{slot_bot:.1f} '
+                 f'L {rx + 2:.1f},{slot_bot:.1f} Z" fill="{c["lit"]}"/>')
+        o.append(f'<rect x="{rx + 1:.1f}" y="{slot_top:.1f}" width="2.5" '
+                 f'height="{slot_bot - slot_top:.1f}" fill="{c["hi"]}" '
+                 f'fill-opacity=".55"/>')
 
-    # recessed floor with the double frame
-    px0, px1, py0, py1 = rail, w - rail, 34, h - 30
-    o.append(f'<rect x="{px0}" y="{py0}" width="{px1-px0}" height="{py1-py0}" '
-             f'rx="10" fill="{c["edge"]}"/>')
-    o.append(f'<rect x="{px0+1.5}" y="{py0+1.5}" width="{px1-px0-3}" '
-             f'height="{py1-py0-3}" rx="9" fill="none" stroke="{c["cav"]}" '
-             f'stroke-width="3" stroke-opacity=".5"/>')
-    o.append(f'<rect x="{px0+11}" y="{py0+11}" width="{px1-px0-22}" '
-             f'height="{py1-py0-22}" rx="6" fill="none" stroke="{c["hi"]}" '
-             f'stroke-width="3" stroke-opacity=".6"/>')
+    # the rim the slots run up into
+    o.append(f'<rect x="0" y="0" width="{w}" height="{rim_h:.1f}" rx="6" fill="{c["lit"]}"/>')
+    o.append(f'<rect x="0" y="{rim_h - 3:.1f}" width="{w}" height="3" '
+             f'fill="{c["deep"]}" fill-opacity=".4"/>')
+    o.append(f'<rect x="4" y="2" width="{w - 8}" height="4" rx="2" fill="{c["hi"]}"/>')
 
-    # the perforation grid, same slot size and bevel as the front
-    gx0, gx1 = px0 + 24, px1 - 24
-    gy0, gy1 = py0 + 26, py1 - 26
-    cp = (gx1 - gx0) / cols
-    rp = (gy1 - gy0 - sh) / max(rows - 1, 1)
-    for r in range(rows):
-        y = gy0 + r * rp
-        for i in range(cols):
-            x = gx0 + i * cp + (cp - sw) / 2
-            wp = bev * 1.6
-            o.append(f'<rect x="{x-wp:.1f}" y="{y-wp:.1f}" width="{sw+wp*2:.1f}" '
-                     f'height="{sh+wp*2:.1f}" rx="{sr+wp:.1f}" fill="{c["hi"]}" '
-                     f'fill-opacity=".55"/>')
-            o.append(f'<rect x="{x-bev:.1f}" y="{y-bev:.1f}" width="{sw}" '
-                     f'height="{sh}" rx="{sr}" fill="{c["hi"]}"/>')
-            o.append(f'<rect x="{x+bev:.1f}" y="{y+bev*.8:.1f}" width="{sw}" '
-                     f'height="{sh}" rx="{sr}" fill="{c["cav"]}"/>')
-            o.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{sw}" height="{sh}" '
-                     f'rx="{sr}" fill="{c["cav"]}" fill-opacity=".92"/>')
+    # the smooth rail across the bottom, with its raised feet
+    o.append(f'<rect x="0" y="{rail_y:.1f}" width="{w}" height="{h - rail_y:.1f}" '
+             f'rx="10" fill="{c["base"]}"/>')
+    o.append(f'<rect x="0" y="{rail_y:.1f}" width="{w}" height="3.5" '
+             f'fill="{c["hi"]}" fill-opacity=".7"/>')
+    feet = max(3, int(w / 230))
+    fw = w * 0.105
+    for i in range(feet):
+        fx = w * (i + 1) / (feet + 1) - fw / 2
+        o.append(f'<rect x="{fx:.1f}" y="{rail_y - 12:.1f}" width="{fw:.1f}" '
+                 f'height="{34:.0f}" rx="7" fill="{c["lit"]}" stroke="{c["deep"]}" '
+                 f'stroke-width="2" stroke-opacity=".35"/>')
 
-    # the rim -- the crate's top edge, on whichever side is the free edge
-    if rim == "top":
-        o.append(f'<rect x="6" y="5" width="{w-12}" height="12" rx="6" fill="{c["hi"]}"/>')
-    o.append(f'<rect x="0" y="0" width="{w}" height="{h}" rx="14" fill="none" '
+    # corner posts
+    for px in (0, w - post):
+        o.append(f'<rect x="{px:.1f}" y="{rim_h:.1f}" width="{post:.1f}" '
+                 f'height="{rail_y - rim_h:.1f}" fill="{c["base"]}"/>')
+        o.append(f'<rect x="{px + (post-4 if px == 0 else 0):.1f}" y="{rim_h:.1f}" '
+                 f'width="4" height="{rail_y - rim_h:.1f}" fill="{c["deep"]}" '
+                 f'fill-opacity=".35"/>')
+
+    o.append(f'<path d="M 0,{h} L 0,10 A 10,10 0 0 1 10,0 L {w-10},0 '
+             f'A 10,10 0 0 1 {w},10 L {w},{h} Z" fill="none" '
              f'stroke="{c["edge"]}" stroke-width="2" stroke-opacity=".7"/>')
     return wrap(w, h, "".join(o))
 
 
 def floor_piece(w, d, c):
     """The crate floor, seen from inside."""
-    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="8" fill="{c["edge"]}"/>']
+    from generate import G
+    r = G["R_BR"]          # the crate's own corner radius
+    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="{r}" fill="{c["edge"]}"/>']
     n = max(6, int(w / 96))
     for i in range(1, n):
         x = w * i / n
@@ -182,7 +196,9 @@ def main():
     out = pathlib.Path(a.dir); out.mkdir(parents=True, exist_ok=True)
     (out / "base.svg").write_text(base_piece(c, a.colour))
     (out / "back.svg").write_text(panel_art(G["W"], G["H"], c, 9, 4))
-    (out / "side.svg").write_text(panel_art(DEPTH, G["H"], c, 7, 4))
+    # the side walls span the crate BODY, not the folder tab above it
+    (out / "side.svg").write_text(
+        panel_art(DEPTH, G["H"] - G["BODY_TOP"], c, 7, 4))
     (out / "floor.svg").write_text(floor_piece(G["W"], DEPTH, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):

@@ -326,3 +326,28 @@ paced.
 - D=720 against H=684 makes the crate read as a deep carton rather than a
   shallow crate. A real one is far wider than it is tall, but the icon's
   front face fixes that ratio at 1.32:1.
+
+## Wall styling, and why the corners would not join
+
+Three faults, all structural rather than cosmetic.
+
+**The walls had the floor's pattern.** The reference photo settles it: the
+floor carries a grid of short slots; the walls carry tall piano-key slots
+running up into the rim, with tapered ribs between them, a smooth rail across
+the bottom, and small raised feet on that rail. `panel_art` now draws a wall.
+
+**The box was sized to the folder, not to the crate.** The icon is a folder:
+its tab rises 96 above the body. Sizing every wall to the full 684 pushed the
+sides proud of the front wherever the tab was not. The box is the body only
+(588), and the tab overhangs it — which is what a folder tab does.
+
+**A flat plane meeting a rounded corner always leaves a wedge.** The front's
+silhouette pulls in by its 62-unit radius at every corner, and a side wall
+parked at the extreme edge left its square corner sticking into that gap. No
+texture change could fix it. On a real crate the front and back wrap the
+sides, so the sides sit inboard; `INSET` is that overlap, and the floor pulls
+in to match so it cannot poke past the outline either.
+
+**Front and back are one moulding.** The back now uses the icon artwork, as
+Cameron asked — `DoubleSide` shows it mirrored from inside, which is what you
+would actually see.
