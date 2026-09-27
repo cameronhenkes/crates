@@ -240,9 +240,12 @@ def main():
         f'width="{G["CANVAS"]}" height="{G["CANVAS"]}"',
         f'viewBox="{G["OX"]} {G["OY"] + G["BODY_TOP"]} {G["W"]} {G["H"] - G["BODY_TOP"]}" '
         f'width="{G["W"]}" height="{G["H"] - G["BODY_TOP"]}"'))
-    # the side walls span the crate BODY, not the folder tab above it
-    (out / "side.svg").write_text(
-        panel_art(DEPTH, G["H"] - G["BODY_TOP"], c, 7, 4))
+    # The sides sit OUTBOARD of the front, so wherever the front's silhouette
+    # curves in at a corner the side is left exposed as a nub. Dropping their
+    # top below where that curve starts hides it, and side walls slightly
+    # lower than the end walls is normal on a real crate anyway.
+    SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"]
+    (out / "side.svg").write_text(panel_art(DEPTH, SIDE_H, c, 7, 4))
     (out / "floor.svg").write_text(floor_piece(G["W"], DEPTH, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):

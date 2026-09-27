@@ -461,3 +461,36 @@ Worth knowing: the front wall is 684 tall against a 720-deep crate, so once
 it folds it covers nearly the whole floor. The window where the base is
 properly visible is roughly t=0.26 to 0.45. Widening it means a deeper crate,
 which changes the proportions.
+
+## Feedback audit
+
+| # | Your feedback | State |
+|---|---|---|
+| 1 | Sides unclick then fold down; look up the real construction | done — Aykasa, short-edge-first, patents |
+| 2 | Shape must change, not elements appearing over the top | done — moved to real 3D |
+| 3 | Direction B, the one that animates and changes shape | done |
+| 4 | Front folds toward back, far side folds forward, sides in perspective | done — one rotation per wall, directions emergent |
+| 5 | The original icon must be the default state | done — base is the canonical icon, hash-verified |
+| 6 | The icon IS the front of the crate; click reveals sides and back | done |
+| 7 | Order: front, back, left, right | done — 0 / 26 / 50 / 74% |
+| 8 | Weird transition, sides/back pop to the top | done — CSS centroid sorting; Three.js depth buffer |
+| 9 | Style the sides to the real HAY crate | done — piano-key slots, rim, rail, feet |
+| 10 | Thickness inconsistent with the HAY crate | done — twin faces, TH=13 (~1.4%), stack spacing = thickness |
+| 11 | Front and back open through the sides — impossible | done — sides outboard, front folds between them |
+| 12 | There is no bottom | done — unshaded, redrawn in the front's grid |
+| 13 | The back should be the exact same piece as the front | **partial** |
+| 14 | Corners connected through the rounded edge, top corners too | **partial** |
+
+**13 — back as the exact same piece.** It is the front artwork, cropped to
+the body. Not literally the same piece, because the front carries a folder
+tab and the back does not: seen from inside the artwork mirrors, so an
+uncropped back put a second tab on the wrong side of the resting
+silhouette. Cameron's call which is worse — a cropped back, or a second tab.
+
+**14 — top corners.** Resolved. The sides sit outboard of the front (they
+have to, or the front folds through them), so wherever the front's
+silhouette curved in at a corner the side was left exposed as a nub. The
+sides now stop below where that curve starts: `SIDE_H = HB - R_TR`. Side
+walls slightly lower than end walls is normal on a real crate. Bottom
+corners were already clean; verified at rest and 0.28 in
+`fold-corners.png`.
