@@ -18,7 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from generate import G, shade, hex_to_oklab, silhouette
 
 WALL_H = 232
-DEPTH = 300      # how far back the crate goes behind its front wall
+DEPTH = 720      # must be >= wall height or the walls cannot fold flat
 
 
 def shades(body):
@@ -41,8 +41,17 @@ def base_piece(c, colour):
     the 3D scene was not the icon any more. The canonical artwork is the
     default state; the walls are extra planes that only matter once it folds.
     """
-    from generate import build
-    return build(colour, None, "Crate", "full")
+    from generate import build, G
+    svg = build(colour, None, "Crate", "full")
+    # The icon is authored on a 1024 square with the crate inset inside it --
+    # right for an app icon, wrong for a pane in a 3D scene, where every other
+    # piece is tight to its content. Crop the viewBox to the crate itself so
+    # the front lines up with the walls instead of floating small inside them.
+    return svg.replace(
+        f'viewBox="0 0 {G["CANVAS"]} {G["CANVAS"]}" '
+        f'width="{G["CANVAS"]}" height="{G["CANVAS"]}"',
+        f'viewBox="{G["OX"]} {G["OY"]} {G["W"]} {G["H"]}" '
+        f'width="{G["W"]}" height="{G["H"]}"')
 
 
 def wall_piece(length, c, face):
