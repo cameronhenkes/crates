@@ -234,3 +234,31 @@ whole depth ordering.
 Next attempt should take the scale off the 3D chain entirely — size the
 panes in already-scaled pixels and drop `scale()` — so the only transforms in
 the preserve-3d context are rotations and translations.
+
+## Four beats, in order
+
+Cameron: "Front, then back, then left side then right-side."
+
+Sequenced accordingly — four discrete beats rather than two, with the sides
+no longer moving together:
+
+| beat | delay | wall |
+|---|---|---|
+| 1 | 0% | front falls back |
+| 2 | 25% | back falls forward |
+| 3 | 49% | left side folds in |
+| 4 | 73% | right side folds in |
+
+Unfold runs the reverse. Each wall also carries a `--stack` offset applied
+after its rotation, so the first to fold ends up at the bottom of the pile —
+which is both what a real crate does and a help to the depth sorting, since
+fewer planes are ever in motion at once.
+
+`fold-sequence-4beat.png` shows the beats reading distinctly.
+
+### Remaining defect
+The side walls project as thin spikes rising well above the frame instead of
+reading as walls. Their far edges being higher on screen is correct
+perspective, but the shape is wrong — they are being seen far closer to
+edge-on than a 245-deep wall should be at a 34 degree tilt. Geometry fault,
+not a sorting one.

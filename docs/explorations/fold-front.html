@@ -10,7 +10,7 @@
    rescales z along with x and y, which silently flattens depth ordering --
    that is what made three earlier rounds of sign-flipping meaningless.
    The panes are sized in final pixels instead. */
-:root{--ease:cubic-bezier(0.2,0,0,1);--d:620ms;
+:root{--ease:cubic-bezier(0.2,0,0,1);--d:1100ms;
   --W:306px;--H:233px;--D:245px;--tilt:34deg}
 *{box-sizing:border-box}
 body{margin:0;min-height:100svh;background:#14161a;color:#e9ecf1;
@@ -27,7 +27,7 @@ h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top
  transform-origin:50% 100%;transform:rotateX(0deg);
  transform-style:preserve-3d;transition:transform var(--d) var(--ease)}
 .pane{position:absolute;transform-style:preserve-3d;
- transition:transform calc(var(--d)*.55) var(--ease)}
+ transition:transform calc(var(--d)*.30) var(--ease)}
 .pane img{width:100%;height:100%;display:block}
 
 /* Browsers sort preserve-3d siblings by transformed centroid depth, so two
@@ -36,17 +36,18 @@ h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top
    the pop. Staggering each wall a few px in z stops them ever tying, which
    removes most of it; it cannot remove all of it, because the planes really
    do cross. A per-pixel depth renderer (WebGL) is the only complete fix. */
-.front{--z:3px} .left{--z:2px} .right{--z:1px} .back{--z:0px}
+.front{--z:3px;--stack:0px} .back{--z:0px;--stack:4px}
+.left{--z:2px;--stack:8px}  .right{--z:1px;--stack:12px}
 
 /* The icon IS the front wall. Hinged on its bottom edge, body above it. */
 .front{inset:0;transform-origin:50% 100%;transform:translateZ(var(--z)) rotateX(0deg)}
 /* falls AWAY: body at -y must reach -z, so -sin t = -1, t = +90 */
-[data-folded="true"] .front{transform:translateZ(var(--z)) rotateX(90deg)}
+[data-folded="true"] .front{transform:translateZ(var(--z)) rotateX(90deg) translateZ(var(--stack))}
 
 .back{inset:0;transform-origin:50% 100%;transform:translateZ(calc(-1*var(--D)))}
 /* falls TOWARD you: -sin t = +1, t = -90 */
-[data-folded="true"] .back{transform:translateZ(calc(-1*var(--D))) rotateX(-90deg);
- transition-delay:calc(var(--d)*.30)}
+[data-folded="true"] .back{transform:translateZ(calc(-1*var(--D))) rotateX(-90deg) translateZ(var(--stack));
+ transition-delay:calc(var(--d)*.25)}
 
 .floor{left:0;top:var(--H);width:var(--W);height:var(--D);
  transform-origin:50% 0%;transform:rotateX(-90deg)}
@@ -58,13 +59,15 @@ h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top
 .right{left:calc(var(--W) - var(--D));top:0;width:var(--D);height:var(--H);
  transform-origin:100% 100%;transform:translateZ(var(--z)) rotateY(-90deg)}
 /* fold inward: both need local rotateX(-90) */
-[data-folded="true"] .left{transform:translateZ(var(--z)) rotateY(90deg) rotateX(-90deg);
- transition-delay:calc(var(--d)*.46)}
-[data-folded="true"] .right{transform:translateZ(var(--z)) rotateY(-90deg) rotateX(-90deg);
- transition-delay:calc(var(--d)*.46)}
+[data-folded="true"] .left{transform:translateZ(var(--z)) rotateY(90deg) rotateX(-90deg) translateZ(var(--stack));
+ transition-delay:calc(var(--d)*.49)}
+[data-folded="true"] .right{transform:translateZ(var(--z)) rotateY(-90deg) rotateX(-90deg) translateZ(var(--stack));
+ transition-delay:calc(var(--d)*.73)}
 
 [data-folded="true"] .rig{transform:rotateX(var(--tilt))}
-[data-folded="false"] .front{transition-delay:calc(var(--d)*.40)}
+[data-folded="false"] .front{transition-delay:calc(var(--d)*.73)}
+[data-folded="false"] .back {transition-delay:calc(var(--d)*.49)}
+[data-folded="false"] .left {transition-delay:calc(var(--d)*.25)}
 
 .state{font-size:12px;color:#8b93a1}.state b{color:#e9ecf1}
 @media (prefers-reduced-motion:reduce){*{transition-duration:1ms!important;transition-delay:0ms!important}}
