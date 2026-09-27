@@ -618,3 +618,25 @@ resurfaces later as "the alignment is off". Both now generate at the
 footprint width.
 
 Every texture is checked against the plane it maps to before inlining.
+
+## Rounding the rim to the front's shape
+
+Cameron: the bottom corners do not line up — can the corner be rounded to
+keep the shape of the front?
+
+Yes. The rim was four straight `BoxGeometry` runs, so they met at square
+corners and pushed past the front's rounded silhouette. It is now a single
+continuous ring: a rounded-rect `Shape` with a rounded-rect hole, extruded to
+the rim height. Its radius is the crate's own `R`, so the base follows the
+front's outline exactly.
+
+Camera elevation at rest also dropped from 5 degrees to 0, so the view is
+level rather than looking slightly down into the crate.
+
+### What remains
+A base band is still visible below the front at rest — that is the rim itself,
+seen edge-on, and it is now rounded to match. Whether it should be visible at
+all is the trade noted earlier: a real crate's front wall sits *on* its base
+rim, so the band is true to the object but is a departure from the icon alone.
+Reducing `RIM` until the icon's own bottom rail covers it would hide it, at
+the cost of the hinge being less legible.

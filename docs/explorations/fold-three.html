@@ -142,14 +142,18 @@ function wall(w, h, url, hinge, rot, lift, shade, flipX){
 // The floor has to reach the walls that hinge on it. It was 875 wide while
 // the sides hinge at +/-456.5, so they were pivoting about 20 units beyond
 // its edge -- hinged in mid-air, which is what read as sides sitting free.
-// the base's perimeter rim, and the hinge line sits on top of it
-function rimRun(w, len, url, pos, rotY){
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, RIM, len),
-    new THREE.MeshLambertMaterial({map: (()=> {
-      const t = loader.load(url); t.colorSpace = THREE.SRGBColorSpace; return t; })()}));
-  m.position.copy(pos); m.position.y = RIM/2;
-  if (rotY) m.rotation.y = rotY;
-  scene.add(m); return m;
+// The rim as four straight runs met at square corners, so it pushed past the
+// front's rounded silhouette at the bottom. A continuous ring extruded from a
+// rounded-rect shape follows the front's radius exactly, so the base keeps the
+// icon's outline.
+function roundedRect(w, h, r){
+  const sh = new THREE.Shape(), x = -w/2, y = -h/2;
+  sh.moveTo(x + r, y);
+  sh.lineTo(x + w - r, y);  sh.quadraticCurveTo(x + w, y, x + w, y + r);
+  sh.lineTo(x + w, y + h - r); sh.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  sh.lineTo(x + r, y + h);  sh.quadraticCurveTo(x, y + h, x, y + h - r);
+  sh.lineTo(x, y + r);      sh.quadraticCurveTo(x, y, x + r, y);
+  return sh;
 }
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(SIDE_X * 2, D), mat(TEX["floor.png"], false));
@@ -173,10 +177,17 @@ const right = wall(SIDE_W, SIDE_H, TEX["side.png"], new THREE.Vector3( SIDE_X,RI
 
 // Folding inward, derived: front +Y must reach -Z (rot.x -90); back +Y must
 // reach +Z (+90); left +Y must reach +X (rot.z -90); right +Y to -X (+90).
-rimRun(SIDE_X*2, TH, TEX["rimlong.png"],  new THREE.Vector3(0,0, D/2));
-rimRun(SIDE_X*2, TH, TEX["rimlong.png"],  new THREE.Vector3(0,0,-D/2));
-rimRun(TH, D,     TEX["rimshort.png"],    new THREE.Vector3(-SIDE_X,0,0));
-rimRun(TH, D,     TEX["rimshort.png"],    new THREE.Vector3( SIDE_X,0,0));
+{
+  const outer = roundedRect(SIDE_X*2, D, R);
+  const inner = roundedRect(SIDE_X*2 - TH*2, D - TH*2, Math.max(3, R - TH));
+  outer.holes.push(new THREE.Path(inner.getPoints(72)));
+  const rim = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(outer, {depth: RIM, bevelEnabled: false}),
+    new THREE.MeshLambertMaterial({color: 0xB2543F}));
+  rim.rotation.x = -Math.PI/2;
+  rim.position.y = RIM;
+  scene.add(rim);
+}
 
 const BEATS = [
   {o:front, axis:"x", to:-Math.PI/2, at:0.00},
@@ -208,7 +219,11 @@ function apply(t){
   // animation happened in a static frame.
   const c = ease(t);
   const dist = 3400 + 500*c;
-  const el = (5 + 44*c) * Math.PI/180;
+  // Dead-on at rest. At 5 degrees the floor and rim behind the front showed
+// as a strip beneath it, wider than the front and square at the corners --
+// which read as the bottom corners not lining up. Face-on, the front
+// occludes everything behind it and the resting frame is the icon alone.
+  const el = (0 + 49*c) * Math.PI/180;
   camera.position.set(0, H*0.42 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
   camera.lookAt(0, H*0.40*(1-c), c*(-D*0.10));
   renderer.render(scene, camera);
