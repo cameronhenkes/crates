@@ -88,6 +88,7 @@ G = dict(
     TAB_COLS=7, TAB_SLOT_W=19, TAB_SLOT_H=60,
     TAB_X0=105, TAB_X1=299, TAB_Y=42,
     FEET=5, FOOT_W=76,
+    PANEL_SHORT=300, PANEL_LONG=248,  # laid-down wall depths
     LUG_AT=0.20, LUG_H=62, LUG_OUT=9,   # stacking lugs on the side walls
 )
 
@@ -113,6 +114,77 @@ def silhouette(g):
         f"L {bl},{H} A {bl},{bl} 0 0 1 0,{H - bl} Z"
     )
 
+
+
+def laid_panel(x, y, w, h, hinge, lit, hi, deep, cavity):
+    """A wall lying flat on the base, inner face up, hinged along one edge.
+
+    This is drawn rather than derived from the upright rail on purpose. A
+    folded wall shows a different surface -- its inner face, with the rim that
+    used to be the top edge now pointing inward -- so scaling the rail art
+    into place only ever reads as a smear.
+    """
+    horiz = hinge in ("left", "right")
+    r = 7
+    o = []                                   # painted back to front
+    # contact shadow, cast away from the hinge onto the floor below
+    dx = (6 if hinge == "left" else -6) if horiz else 0
+    dy = 0 if horiz else (6 if hinge == "top" else -6)
+    o.append(f'<rect x="{x + dx}" y="{y + dy}" width="{w}" height="{h}" '
+             f'rx="{r}" fill="{cavity}" fill-opacity="0.42"/>')
+    o.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" '
+             f'fill="{lit}"/>')
+
+    # the crease at the hinge, and the rim at the free edge
+    if horiz:
+        hx = x if hinge == "left" else x + w - 4
+        fx = x + w - 6 if hinge == "left" else x
+        o.append(f'<rect x="{hx}" y="{y}" width="4" height="{h}" '
+                 f'fill="{deep}" fill-opacity="0.55"/>')
+        o.append(f'<rect x="{fx}" y="{y + 3}" width="6" height="{h - 6}" '
+                 f'rx="3" fill="{hi}"/>')
+    else:
+        hy = y if hinge == "top" else y + h - 4
+        fy = y + h - 6 if hinge == "top" else y
+        o.append(f'<rect x="{x}" y="{hy}" width="{w}" height="4" '
+                 f'fill="{deep}" fill-opacity="0.55"/>')
+        o.append(f'<rect x="{x + 3}" y="{fy}" width="{w - 6}" height="6" '
+                 f'rx="3" fill="{hi}"/>')
+
+    # ribs running from hinge to rim, the way the moulding actually stiffens
+    span = h if horiz else w
+    n = max(4, int(span / 62))
+    for i in range(1, n):
+        t = span * i / n
+        if horiz:
+            o.append(f'<rect x="{x + 8}" y="{y + t:.1f}" width="{w - 16}" '
+                     f'height="3" fill="{deep}" fill-opacity="0.22"/>')
+        else:
+            o.append(f'<rect x="{x + t:.1f}" y="{y + 8}" width="3" '
+                     f'height="{h - 16}" fill="{deep}" fill-opacity="0.22"/>')
+
+    # two rows of perforations, parallel to the hinge. These read dark because
+    # the panel is lying ON the base -- you see shadow through them, not sky.
+    sw, sh = 13, 46
+    depth = w if horiz else h
+    for row in (0.34, 0.68):
+        if horiz:
+            px = x + depth * row - sw / 2
+            cols = max(3, int(h / 78))
+            for j in range(cols):
+                py = y + 16 + (h - 32 - sh) * (j / max(1, cols - 1))
+                o.append(f'<rect x="{px:.1f}" y="{py:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="4" fill="{cavity}" '
+                         f'fill-opacity="0.8"/>')
+        else:
+            py = y + depth * row - sw / 2
+            cols = max(4, int(w / 78))
+            for j in range(cols):
+                px = x + 16 + (w - 32 - sh) * (j / max(1, cols - 1))
+                o.append(f'<rect x="{px:.1f}" y="{py:.1f}" width="{sh}" '
+                         f'height="{sw}" rx="4" fill="{cavity}" '
+                         f'fill-opacity="0.8"/>')
+    return "".join(o)
 
 # ----------------------------------------------------------------- build ----
 
@@ -302,6 +374,22 @@ def build(body, void_col=None, title="Crate", detail="full", parts=False):
               f'stroke="{deep}" stroke-width="2" stroke-opacity="0.25"/>')
 
     g_close()
+
+    # Laid-down wall panels, hidden until the fold animates them in. Short
+    # ends first in paint order, long sides over them -- the order the real
+    # crate folds in.
+    if parts:
+        ps, pl = g["PANEL_SHORT"], g["PANEL_LONG"]
+        a('<g class="c-panel c-panel-left">'
+          + laid_panel(0, bt, ps, H - bt, "left", lit, hi, deep, cavity) + '</g>')
+        a('<g class="c-panel c-panel-right">'
+          + laid_panel(W - ps, bt, ps, H - bt, "right", lit, hi, deep, cavity)
+          + '</g>')
+        a('<g class="c-panel c-panel-top">'
+          + laid_panel(0, bt, W, pl, "top", lit, hi, deep, cavity) + '</g>')
+        a('<g class="c-panel c-panel-bottom">'
+          + laid_panel(0, H - pl, W, pl, "bottom", lit, hi, deep, cavity)
+          + '</g>')
 
     a(f'<rect x="0" y="0" width="{W}" height="{H}" fill="url(#sheen)"/>')
     a('</g>')

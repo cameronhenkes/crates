@@ -73,3 +73,23 @@ reads as dissolving rather than folding.
 B is the only one that currently reads as a fold without new artwork. A is
 the most faithful and would beat B if the laid-down panels were drawn. D is
 not worth shipping.
+
+## Built: laid-down panels, and option A properly
+
+`fold-demo.html` — all three live, side by side, clickable.
+
+`generate.py --parts` now also emits four hidden `c-panel` groups: purpose-drawn
+laid-down walls, painted last so a folded wall covers what it lands on. Each
+panel shows the wall's **inner** face — the rim that used to be the top edge
+now pointing inward, ribs running hinge-to-rim, two rows of perforations, and
+a contact shadow cast away from the hinge. The perforations are drawn dark
+rather than cut through, because a panel lying on the base shows shadow
+through its holes, not wallpaper.
+
+Each panel starts at exactly the apparent width of the upright wall it
+replaces (`scaleX(.36)` for the short ends, `scaleY(.22)` for the long sides)
+and grows to full depth from its hinge, so the swap is continuous. Long sides
+carry a 150ms delay — short edge first, then long, as the object does.
+
+The plain (non-`--parts`) output is byte-identical throughout; verified by
+raster hash after each change.
