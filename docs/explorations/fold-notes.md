@@ -494,3 +494,23 @@ sides now stop below where that curve starts: `SIDE_H = HB - R_TR`. Side
 walls slightly lower than end walls is normal on a real crate. Bottom
 corners were already clean; verified at rest and 0.28 in
 `fold-corners.png`.
+
+## Sides in the front's language, and latches
+
+**The sides were in a different vocabulary.** I had drawn them with the
+piano-key slots visible in the reference photo — truthful to the object, but
+the front of this crate is the icon, and a side in a different language does
+not read as the same part. `panel_art` now draws the icon's body at any
+aspect: rounded silhouette, rails with their ladder of recesses, the
+double-framed panel, the same slot size and bevels, centre divider, bottom
+rail with feet. Consistency with the front wins over fidelity to the photo.
+
+**Latches.** On the real crate the end walls carry a catch that drops into a
+recessed channel on the side wall. Drawn as a vertical groove inboard of each
+corner post — lit near edge, shadowed far edge, so it reads as cut into the
+moulding rather than printed on it — with the catch step about a third of the
+way down.
+
+**Edges.** The side's front corner was appearing past the point where the
+front's silhouette curves in. `DEPTH_IN` raised from `R*0.62` to `R*1.15`, so
+the sides start further back and cannot show at the corner.

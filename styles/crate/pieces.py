@@ -92,77 +92,113 @@ def wall_piece(length, c, face):
 
 
 def panel_art(w, h, c, cols, rows, rim="top"):
-    """A crate WALL, drawn from the reference photo rather than from the floor.
+    """A crate panel in the FRONT's vocabulary, at any aspect.
 
-    The floor and the walls do not share a pattern, which is what the earlier
-    version got wrong. A wall is: a rim along the top, a band of tall slots
-    with tapered ribs between them running up into that rim, then a smooth
-    rail across the bottom carrying small raised feet, and a corner post at
-    each end.
+    An earlier version drew the walls with the piano-key slots seen in the
+    reference photo. Truthful to the object, but the front of this crate is
+    the icon -- rounded silhouette, rails down each edge, a double-framed
+    panel, a slot grid, a bottom rail with feet -- and a side in a different
+    language does not read as the same object. Consistency with the front
+    wins, so this draws the icon's body at whatever width and height is asked.
     """
-    post = max(18, w * 0.035)
-    rim_h = h * 0.050
-    # slots run up INTO the rim with no gap, as they do on the real crate,
-    # and they run deeper than the first attempt allowed
-    slot_top, slot_bot = rim_h, h * 0.72
-    rail_y = h * 0.735
-    # Only the top edge of a wall is a free edge. Its vertical edges butt
-    # against the neighbouring walls, so a radius there opens a notch at
-    # every corner -- which is what made the corners look unjoined.
-    o = [f'<path d="M 0,{h} L 0,10 A 10,10 0 0 1 10,0 L {w-10},0 '
-         f'A 10,10 0 0 1 {w},10 L {w},{h} Z" fill="{c["base"]}"/>']
+    from generate import G
+    sw, sh, sr = G["SLOT_W"], G["SLOT_H"], G["SLOT_R"]
+    bev = 3.2
+    r = min(G["R_BR"], w * 0.09, h * 0.09)
+    rail = max(46, w * 0.115)
+    flange = max(18, h * 0.030)
+    foot = max(40, h * 0.115)
+    o = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="{r:.0f}" fill="{c["base"]}"/>']
 
-    # the slot band: tall openings separated by ribs that taper toward the rim,
-    # which is what gives the real crate its piano-key look
-    n = max(7, int(w / 58))
-    pitch = (w - post * 2) / n
-    sw = pitch * 0.62
+    px0, px1 = rail + 4, w - rail - 4
+    py0, py1 = flange + 4, h - foot - 4
+
+    # recessed floor, double-framed -- the front's defining border
+    o.append(f'<rect x="{px0:.1f}" y="{py0:.1f}" width="{px1-px0:.1f}" '
+             f'height="{py1-py0:.1f}" rx="12" fill="{c["edge"]}"/>')
+    o.append(f'<rect x="{px0+1.5:.1f}" y="{py0+1.5:.1f}" width="{px1-px0-3:.1f}" '
+             f'height="{py1-py0-3:.1f}" rx="11" fill="none" stroke="{c["cav"]}" '
+             f'stroke-width="3" stroke-opacity=".5"/>')
+    o.append(f'<rect x="{px0+12:.1f}" y="{py0+12:.1f}" width="{px1-px0-24:.1f}" '
+             f'height="{py1-py0-24:.1f}" rx="7" fill="none" stroke="{c["hi"]}" '
+             f'stroke-width="3" stroke-opacity=".6"/>')
+
+    # the folded-wall ladder down each edge, as on the icon's rails
+    n = max(3, int((py1 - py0) / 78))
+    pitch = (py1 - py0) / n
     for i in range(n):
-        x = post + i * pitch + (pitch - sw) / 2
-        o.append(f'<path d="M {x:.1f},{slot_top:.1f} '
-                 f'L {x + sw:.1f},{slot_top:.1f} '
-                 f'L {x + sw:.1f},{slot_bot - sw/2:.1f} '
-                 f'A {sw/2:.1f},{sw/2:.1f} 0 0 1 {x:.1f},{slot_bot - sw/2:.1f} Z" '
-                 f'fill="{c["cav"]}"/>')
-        # ribs catch light on their left edge and fall away to the right
-        rx = x + sw
-        o.append(f'<path d="M {rx:.1f},{slot_top:.1f} '
-                 f'L {rx + pitch - sw:.1f},{slot_top:.1f} '
-                 f'L {rx + pitch - sw - 2:.1f},{slot_bot:.1f} '
-                 f'L {rx + 2:.1f},{slot_bot:.1f} Z" fill="{c["lit"]}"/>')
-        o.append(f'<rect x="{rx + 1:.1f}" y="{slot_top:.1f}" width="2.5" '
-                 f'height="{slot_bot - slot_top:.1f}" fill="{c["hi"]}" '
+        ry, rh = py0 + i * pitch + 4, pitch - 12
+        for rx in (10, w - rail + 8):
+            o.append(f'<rect x="{rx:.1f}" y="{ry:.1f}" width="{rail-20:.1f}" '
+                     f'height="{rh:.1f}" rx="5" fill="{c["edge"]}" fill-opacity=".55"/>')
+            o.append(f'<rect x="{rx:.1f}" y="{ry-2:.1f}" width="{rail-20:.1f}" '
+                     f'height="{rh:.1f}" rx="5" fill="none" stroke="{c["hi"]}" '
+                     f'stroke-width="2" stroke-opacity=".45"/>')
+
+    # centre divider
+    dx, dw = w / 2, 18
+    o.append(f'<rect x="{dx-dw/2:.1f}" y="{py0:.1f}" width="{dw}" '
+             f'height="{py1-py0:.1f}" fill="{c["base"]}"/>')
+    o.append(f'<rect x="{dx-dw/2:.1f}" y="{py0:.1f}" width="3" '
+             f'height="{py1-py0:.1f}" fill="{c["hi"]}" fill-opacity=".85"/>')
+
+    # the slot grid, front's slot size and bevel
+    pad = 22
+    for sx0, sx1 in ((px0+pad, dx-dw/2-pad), (dx+dw/2+pad, px1-pad)):
+        nc = max(2, int((sx1-sx0) / 34))
+        nr = max(2, int((py1-py0-2*pad) / 100))
+        cp = (sx1-sx0) / nc
+        rp = (py1-py0-2*pad-sh) / max(nr-1, 1)
+        for ri in range(nr):
+            y = py0 + pad + ri * rp
+            for i in range(nc):
+                x = sx0 + i * cp + (cp - sw) / 2
+                wp = bev * 1.6
+                o.append(f'<rect x="{x-wp:.1f}" y="{y-wp:.1f}" '
+                         f'width="{sw+wp*2:.1f}" height="{sh+wp*2:.1f}" '
+                         f'rx="{sr+wp:.1f}" fill="{c["hi"]}" fill-opacity=".5"/>')
+                o.append(f'<rect x="{x-bev:.1f}" y="{y-bev:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="{sr}" fill="{c["hi"]}"/>')
+                o.append(f'<rect x="{x+bev:.1f}" y="{y+bev*.8:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="{sr}" fill="{c["cav"]}"/>')
+                o.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="{sr}" fill="{c["cav"]}" fill-opacity=".92"/>')
+
+    # Latch grooves. On the real crate the end walls carry a catch that drops
+    # into a recessed channel on the side wall -- Cameron: "it's a groove".
+    # A vertical channel inboard of each corner post, with a lit near edge and
+    # a shadowed far one so it reads as cut into the moulding rather than
+    # drawn on it, plus the catch step partway down.
+    for gx in (rail * 0.40, w - rail * 0.40 - 13):
+        o.append(f'<rect x="{gx:.1f}" y="{flange+10:.1f}" width="13" '
+                 f'height="{h-foot-flange-20:.1f}" rx="5" fill="{c["cav"]}" '
                  f'fill-opacity=".55"/>')
+        o.append(f'<rect x="{gx:.1f}" y="{flange+10:.1f}" width="3" '
+                 f'height="{h-foot-flange-20:.1f}" rx="1.5" fill="{c["deep"]}" '
+                 f'fill-opacity=".6"/>')
+        o.append(f'<rect x="{gx+10:.1f}" y="{flange+10:.1f}" width="3" '
+                 f'height="{h-foot-flange-20:.1f}" rx="1.5" fill="{c["hi"]}" '
+                 f'fill-opacity=".5"/>')
+        # the catch itself, a step across the groove
+        cy = flange + (h - foot - flange) * 0.34
+        o.append(f'<rect x="{gx-4:.1f}" y="{cy:.1f}" width="21" height="22" '
+                 f'rx="5" fill="{c["lit"]}" stroke="{c["deep"]}" '
+                 f'stroke-width="2" stroke-opacity=".45"/>')
 
-    # the rim the slots run up into
-    o.append(f'<rect x="0" y="0" width="{w}" height="{rim_h:.1f}" rx="6" fill="{c["lit"]}"/>')
-    o.append(f'<rect x="0" y="{rim_h - 3:.1f}" width="{w}" height="3" '
-             f'fill="{c["deep"]}" fill-opacity=".4"/>')
-    o.append(f'<rect x="4" y="2" width="{w - 8}" height="4" rx="2" fill="{c["hi"]}"/>')
+    # top rim and bottom rail with feet, as the front has
+    o.append(f'<rect x="0" y="0" width="{w}" height="{flange:.1f}" fill="{c["lit"]}"/>')
+    o.append(f'<rect x="0" y="0" width="{w}" height="3" fill="{c["hi"]}"/>')
+    o.append(f'<rect x="0" y="{h-foot:.1f}" width="{w}" height="{foot:.1f}" fill="{c["base"]}"/>')
+    o.append(f'<rect x="0" y="{h-foot:.1f}" width="{w}" height="3" fill="{c["hi"]}" fill-opacity=".8"/>')
+    nf = max(2, int(w / 230))
+    fw = w * 0.095
+    for i in range(nf):
+        fx = w * (i + 1) / (nf + 1) - fw / 2
+        o.append(f'<rect x="{fx:.1f}" y="{h-foot+4:.1f}" width="{fw:.1f}" '
+                 f'height="{foot*0.6:.1f}" rx="8" fill="{c["lit"]}" fill-opacity=".5" '
+                 f'stroke="{c["deep"]}" stroke-width="2" stroke-opacity=".3"/>')
 
-    # the smooth rail across the bottom, with its raised feet
-    o.append(f'<rect x="0" y="{rail_y:.1f}" width="{w}" height="{h - rail_y:.1f}" '
-             f'rx="10" fill="{c["base"]}"/>')
-    o.append(f'<rect x="0" y="{rail_y:.1f}" width="{w}" height="3.5" '
-             f'fill="{c["hi"]}" fill-opacity=".7"/>')
-    feet = max(3, int(w / 230))
-    fw = w * 0.105
-    for i in range(feet):
-        fx = w * (i + 1) / (feet + 1) - fw / 2
-        o.append(f'<rect x="{fx:.1f}" y="{rail_y - 12:.1f}" width="{fw:.1f}" '
-                 f'height="{34:.0f}" rx="7" fill="{c["lit"]}" stroke="{c["deep"]}" '
-                 f'stroke-width="2" stroke-opacity=".35"/>')
-
-    # corner posts
-    for px in (0, w - post):
-        o.append(f'<rect x="{px:.1f}" y="{rim_h:.1f}" width="{post:.1f}" '
-                 f'height="{rail_y - rim_h:.1f}" fill="{c["base"]}"/>')
-        o.append(f'<rect x="{px + (post-4 if px == 0 else 0):.1f}" y="{rim_h:.1f}" '
-                 f'width="4" height="{rail_y - rim_h:.1f}" fill="{c["deep"]}" '
-                 f'fill-opacity=".35"/>')
-
-    o.append(f'<path d="M 0,{h} L 0,10 A 10,10 0 0 1 10,0 L {w-10},0 '
-             f'A 10,10 0 0 1 {w},10 L {w},{h} Z" fill="none" '
+    o.append(f'<rect x="0" y="0" width="{w}" height="{h}" rx="{r:.0f}" fill="none" '
              f'stroke="{c["edge"]}" stroke-width="2" stroke-opacity=".7"/>')
     return wrap(w, h, "".join(o))
 
