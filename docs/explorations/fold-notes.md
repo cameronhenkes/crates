@@ -170,3 +170,29 @@ confirming, since swapping it is one line.
 ### Still to tune
 Wall thickness is not modelled, so the flat state is a single plane rather
 than a four-layer stack. Duration (760ms) is long for a click.
+
+## The icon is the default state
+
+> "The folder icon which we created through original should be the default
+> state, but currently it looks like we're rebuilt it."
+
+Right, and it was a real regression. `pieces.py` had been redrawing a
+simplified floor for the base, so the 3D scene's resting image was a
+reconstruction rather than the icon. The canonical artwork is the default
+state; the walls and the tilt are part of the *answer*, not the resting image.
+
+Fixed two ways:
+
+1. `base_piece()` now calls `generate.build()` — the base **is** the icon.
+   Verified pixel-identical to `crate.py` output by raster hash, not by eye.
+2. The scene rests at `rotateX(0)` with the walls hidden, so the default
+   frame is the flat icon exactly as it appears everywhere else. It only
+   leaves plan view once you ask it to fold.
+
+### Open defect
+With the scene resting flat, the upright walls are not appearing during the
+tilt — frames 2 to 4 of `fold3d-from-icon.png` show a tilted plane with no
+walls standing. Either they are z-fighting with the base or the
+`preserve-3d` chain is breaking under the scaled parent. The resting state
+and the flat end state are both correct; the middle of the animation is not.
+Needs a debugging pass before this is worth wiring into the component.

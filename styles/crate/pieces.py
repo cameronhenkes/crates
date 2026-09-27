@@ -33,45 +33,15 @@ def wrap(w, h, inner, defs=""):
             f'width="{w}" height="{h}">{defs}{inner}</svg>')
 
 
-def base_piece(c):
-    g = G
-    W, H, bt = g["W"], g["H"], g["BODY_TOP"]
-    sw, sh, sr = g["SLOT_W"], g["SLOT_H"], g["SLOT_R"]
-    rows, cols = g["ROWS"], g["COLS"]
-    gy0, gy1 = g["GRID_Y0"], g["GRID_Y1"]
-    dx, dw, pad = g["DIV_X"], g["DIV_W"], g["PANEL_PAD"]
-    px0, px1 = 30, W - 30
-    holes, art = [], []
-    art.append(f'<path d="{silhouette(g)}" fill="{c["base"]}"/>')
-    art.append(f'<rect x="{px0}" y="{bt + 24}" width="{px1 - px0}" '
-               f'height="{H - bt - 72}" rx="12" fill="{c["edge"]}"/>')
-    art.append(f'<rect x="{dx - dw/2}" y="{bt + 24}" width="{dw}" '
-               f'height="{H - bt - 72}" fill="{c["base"]}"/>')
-    row_pitch = (gy1 - gy0 - sh) / max(rows - 1, 1)
-    for sx0, sx1 in ((px0 + pad, dx - dw/2 - pad), (dx + dw/2 + pad, px1 - pad)):
-        cp = (sx1 - sx0) / cols
-        for r in range(rows):
-            y = gy0 + r * row_pitch
-            for i in range(cols):
-                x = sx0 + i * cp + (cp - sw) / 2
-                holes.append((round(x, 1), round(y, 1)))
-                art.append(f'<rect x="{x-2.2:.1f}" y="{y-2.2:.1f}" width="{sw}" '
-                           f'height="{sh}" rx="{sr}" fill="{c["hi"]}"/>')
-                art.append(f'<rect x="{x+2.2:.1f}" y="{y+1.8:.1f}" width="{sw}" '
-                           f'height="{sh}" rx="{sr}" fill="{c["cav"]}"/>')
-    cuts = "".join(f'<rect x="{x}" y="{y}" width="{sw}" height="{sh}" '
-                   f'rx="{sr}" fill="#000"/>' for x, y in holes)
-    defs = (f'<defs><clipPath id="bs"><path d="{silhouette(g)}"/></clipPath>'
-            f'<mask id="bh" maskUnits="userSpaceOnUse" x="-20" y="-20" '
-            f'width="{W+40}" height="{H+40}">'
-            f'<rect x="-20" y="-20" width="{W+40}" height="{H+40}" fill="#FFF"/>'
-            f'{cuts}</mask></defs>')
-    body = (f'<g mask="url(#bh)"><g clip-path="url(#bs)">{"".join(art)}'
-            f'<path d="{silhouette(g)}" fill="none" stroke="{c["spec"]}" '
-            f'stroke-width="18"/></g>'
-            f'<path d="{silhouette(g)}" fill="none" stroke="{c["edge"]}" '
-            f'stroke-width="2" stroke-opacity=".7"/></g>')
-    return wrap(W, H, body, defs)
+def base_piece(c, colour):
+    """The base is the ORIGINAL icon, unchanged.
+
+    Earlier this redrew a simplified floor, which meant the resting state of
+    the 3D scene was not the icon any more. The canonical artwork is the
+    default state; the walls are extra planes that only matter once it folds.
+    """
+    from generate import build
+    return build(colour, None, "Crate", "full")
 
 
 def wall_piece(length, c, face):
@@ -118,7 +88,7 @@ def main():
     a = ap.parse_args()
     c = shades(a.colour)
     out = pathlib.Path(a.dir); out.mkdir(parents=True, exist_ok=True)
-    (out / "base.svg").write_text(base_piece(c))
+    (out / "base.svg").write_text(base_piece(c, a.colour))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):
             (out / f"wall-{name}-{face}.svg").write_text(wall_piece(L, c, face))
