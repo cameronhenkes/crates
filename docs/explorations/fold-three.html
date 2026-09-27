@@ -1,0 +1,134 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate fold — Three.js</title>
+<style>
+ html,body{margin:0;height:100%;background:#14161a;color:#e9ecf1;
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif}
+ body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:26px}
+ h1{font-size:16px;margin:0;font-weight:600;text-align:center}
+ h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top:5px}
+ #wrap{appearance:none;background:none;border:0;padding:0;cursor:pointer;border-radius:16px;display:block}
+ #wrap:focus-visible{outline:2px solid currentColor;outline-offset:8px}
+ canvas{display:block;border-radius:14px}
+ .state{font-size:12px;color:#8b93a1}.state b{color:#e9ecf1}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script></head><body>
+<h1>The icon is the front of the crate
+ <small>Click it. Front folds back, then the back, then left, then right.</small></h1>
+<button id="wrap" aria-pressed="false" aria-label="Fold the crate"></button>
+<pre id="diag" style="margin:0;font:11px ui-monospace,Menlo,monospace;color:#7c8794;white-space:pre-wrap;max-width:560px"></pre>
+<p class="state" id="state">Crate is <b>closed</b> &middot; click to fold</p>
+<script type="module">
+import * as THREE from "three";
+const diag = m => { const d=document.getElementById("diag"); if(d) d.textContent += m + "\n"; };
+window.addEventListener("error", e => diag("ERROR: " + e.message));
+diag("three " + THREE.REVISION + " loaded");
+
+const W = 900, H = 684, D = 720;          // front face, and how deep it goes
+const SIZE = 460;
+
+const scene = new THREE.Scene();
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(SIZE, SIZE);
+document.getElementById("wrap").appendChild(renderer.domElement);
+diag("renderer ok, ctx=" + (renderer.getContext() ? "yes" : "NO"));
+
+// Low FOV from far away reads as near-orthographic, so the resting frame is
+// the icon rather than a photograph of it.
+const camera = new THREE.PerspectiveCamera(17, 1, 10, 12000);
+scene.add(new THREE.AmbientLight(0xffffff, 0.92));
+const key = new THREE.DirectionalLight(0xffffff, 0.45);
+key.position.set(-500, 900, 1200); scene.add(key);
+
+// Textures load async. Rendering once at startup paints an empty canvas,
+// so the manager re-renders the moment they are all in.
+const manager = new THREE.LoadingManager();
+const loader = new THREE.TextureLoader(manager);
+function mat(url){
+  const t = loader.load(url);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  // alphaTest rather than blending: the fragment shader discards transparent
+  // pixels, so the depth buffer stays authoritative and the perforations are
+  // genuinely see-through at every angle. This is the thing CSS could not do.
+  return new THREE.MeshLambertMaterial({
+    map:t, transparent:true, alphaTest:0.5, side:THREE.DoubleSide });
+}
+
+/** A wall hinged on a base edge. The pivot sits ON the hinge; the plane is
+ *  offset so it stands up from it, so rotating the pivot IS the fold. */
+function wall(w, h, url, hinge, rot){
+  const pivot = new THREE.Group();
+  pivot.position.copy(hinge);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(url));
+  mesh.position.set(0, h/2, 0);
+  if (rot) mesh.rotation.y = rot;
+  pivot.add(mesh);
+  scene.add(pivot);
+  return pivot;
+}
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat("tex/floor.png"));
+floor.rotation.x = -Math.PI/2;
+scene.add(floor);
+
+const front = wall(W, H, "tex/front.png", new THREE.Vector3(0,0, D/2));
+const back  = wall(W, H, "tex/back.png",  new THREE.Vector3(0,0,-D/2));
+const left  = wall(D, H, "tex/side.png",  new THREE.Vector3(-W/2,0,0), Math.PI/2);
+const right = wall(D, H, "tex/side.png",  new THREE.Vector3( W/2,0,0), Math.PI/2);
+
+// Folding inward, derived: front +Y must reach -Z (rot.x -90); back +Y must
+// reach +Z (+90); left +Y must reach +X (rot.z -90); right +Y to -X (+90).
+const BEATS = [
+  {o:front, axis:"x", to:-Math.PI/2, at:0.00},
+  {o:back,  axis:"x", to: Math.PI/2, at:0.26},
+  {o:left,  axis:"z", to:-Math.PI/2, at:0.50},
+  {o:right, axis:"z", to: Math.PI/2, at:0.74},
+];
+const SPAN = 0.26;
+
+const ease = x => 1 - Math.pow(1 - x, 3);
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+
+function apply(t){
+  for (const b of BEATS){
+    b.o.rotation[b.axis] = b.to * ease(clamp01((t - b.at) / SPAN));
+  }
+  // the camera lifts and pulls back as it opens, so you see into the crate
+  const c = ease(clamp01(t / 0.55));
+  const dist = 3400 + 700*c;
+  const el = (6 + 40*c) * Math.PI/180;
+  camera.position.set(0, H*0.5 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
+  camera.lookAt(0, H*0.5*(1-c), c*(-D*0.08));
+  renderer.render(scene, camera);
+}
+
+let t = 0, target = 0, raf = null;
+const DUR = 1500;
+function run(){
+  const dir = target > t ? 1 : -1, step = 16/DUR;
+  t = clamp01(t + dir*step);
+  apply(t);
+  if ((dir > 0 && t < target) || (dir < 0 && t > target)) raf = requestAnimationFrame(run);
+  else { raf = null; window.__t = t; }
+}
+const btn = document.getElementById("wrap"), st = document.getElementById("state");
+btn.addEventListener("click", () => {
+  const open = target < 0.5; target = open ? 1 : 0;
+  btn.setAttribute("aria-pressed", String(open));
+  st.innerHTML = "Crate is <b>" + (open ? "folded flat" : "closed") +
+                 "</b> &middot; click to " + (open ? "unfold" : "fold");
+  if (!raf) raf = requestAnimationFrame(run);
+});
+
+// frame-by-frame hook: ?t=0.42 renders that instant and stops
+const q = new URLSearchParams(location.search);
+if (q.has("t")) { t = target = parseFloat(q.get("t")); }
+manager.onLoad = () => { diag("textures loaded"); apply(t); window.__ready = true; };
+manager.onProgress = (u,l,tot) => diag("  loaded " + l + "/" + tot);
+manager.onError = u => diag("TEXTURE FAILED: " + u);
+apply(t);
+</script></body></html>

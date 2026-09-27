@@ -262,3 +262,36 @@ reading as walls. Their far edges being higher on screen is correct
 perspective, but the shape is wrong — they are being seen far closer to
 edge-on than a 245-deep wall should be at a 34 degree tilt. Geometry fault,
 not a sorting one.
+
+## Moved to Three.js
+
+CSS 3D was the wrong renderer. Four hinged planes genuinely intersect at their
+hinges, and browsers sort `preserve-3d` siblings by transformed centroid, so
+the order flips in a single frame whenever two centroids cross. No amount of
+z-staggering removes that; it is how the compositor works.
+
+`fold-three.html` rebuilds the scene with a real depth buffer.
+
+- Each wall is a `Group` positioned **on** its hinge line with the plane
+  offset to stand up from it, so rotating the group *is* the fold. No
+  compound transforms to get the sign wrong on.
+- Rotations derived, not guessed: front `+Y` must reach `-Z` (`rot.x -90`);
+  back `+Y` to `+Z` (`+90`); left `+Y` to `+X` (`rot.z -90`); right to `-X`
+  (`+90`).
+- Materials use `alphaTest: 0.5` rather than alpha blending, so the fragment
+  shader discards transparent pixels and the depth buffer stays
+  authoritative. The perforations are genuinely see-through at every angle —
+  the thing CSS could not do at all.
+- Camera is a 17-degree FOV from far back, so the resting frame reads as the
+  icon rather than a photograph of it. It lifts and pulls back as the crate
+  opens.
+- Four beats at 0 / 26 / 50 / 74 percent: front, back, left, right.
+- `?t=0.42` renders that instant and stops, for frame-by-frame review.
+
+### Verification gap
+Headless Chrome needs software GL (`WEBGL=1` on `lib/render.sh`, now
+supported) and it renders the canvas blank even with textures confirmed
+loading. So this scene cannot be checked the way every earlier version was.
+It has an on-page diagnostic instead: three's revision, renderer context,
+texture progress and any thrown error print under the canvas. Check it in a
+real browser.
