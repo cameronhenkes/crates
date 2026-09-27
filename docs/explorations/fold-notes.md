@@ -666,3 +666,36 @@ the time the crate is open the base is fully there.
 This is the one place the build cheats rather than models. It is worth it: no
 camera position both shows a closed crate face-on and hides a base that is
 genuinely wider than the wall in front of it.
+
+## The rim is the housing, not a plinth
+
+Cameron: "onclick after the front collapses the stray piece reappears."
+
+Hiding the base at rest treated the symptom. The plate was visible beneath
+the folded front because the front was lying **67 units above the floor**,
+and that was a modelling error, not a camera one.
+
+I had hinged every wall on *top* of the rim and then lifted each one further
+as it folded. A real crate is the other way round: the rim exists to **house
+the folded stack**. Each wall hinges at its own height *inside* the rim, the
+first to fold sitting lowest, directly on the floor, and each later one a
+wall-thickness higher.
+
+| wall | hinge height |
+|---|---|
+| front (folds 1st) | 6.5 |
+| back | 19.5 |
+| left | 32.5 |
+| right (folds last) | 45.5 |
+
+Four walls stack to 52; the rim is 54. The stagger is static, in the hinge
+positions, so the animated lift is gone entirely.
+
+Also found while in there: the rim ring was positioned one rim-height too
+high. `ExtrudeGeometry` runs 0..depth along +Z, which after the -90 degree
+rotation is already 0..RIM in Y, so adding `position.y = RIM` put it at
+54..108. It sat above the floor with a gap underneath.
+
+The rim ring is now `(W + 2*TH) x D` outside and `W x (D - 2*TH)` inside, so
+the walls sit in the middle of its thickness and the front fits exactly
+within its inner edge.

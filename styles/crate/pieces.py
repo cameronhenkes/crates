@@ -321,7 +321,7 @@ def main():
     (out / "side.svg").write_text(panel_art(DEPTH - 26, SIDE_H, c, 7, 4))
     # the floor and the long rim span the FOOTPRINT, not the front's
     # width -- the sides sit outboard, so it is W + WALL_T
-    foot = G["W"] + WALL_T
+    foot = G["W"] + WALL_T * 2
     (out / "floor.svg").write_text(floor_piece(foot, DEPTH, c))
     (out / "rim-long.svg").write_text(rim_piece(foot, RIM, c))
     (out / "rim-short.svg").write_text(rim_piece(DEPTH, RIM, c))
