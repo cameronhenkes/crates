@@ -16,11 +16,15 @@ RENDER = HERE.parent.parent / "lib" / "render.sh"
 OUT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/crate-review")
 OUT.mkdir(parents=True, exist_ok=True)
 TOTAL = 1890
-MOMENTS = [(0, "rest"), (130, "front: squeezed"), (240, "front: popped free"),
-           (500, "front: lowering"), (760, "front down"), (770, "back: squeezed"),
+MOMENTS = [(0, "rest"), (20, "first frame"), (40, "squeeze begins"),
+           (80, "squeezing"), (130, "front: squeezed"), (180, "front: releasing"),
+           (240, "front: popped free"), (500, "front: lowering"),
+           (760, "front down"), (770, "back: squeezed"),
            (880, "back: popped free"), (1150, "back: lowering"),
            (1400, "back down"), (1510, "left folding"), (1720, "right folding"),
            (1890, "flat")]
+# Unfolding plays the same positions in reverse, so these frames are also
+# every frame of the unfold; the first row is its last quarter second.
 
 def shot(ms, scale):
     out = OUT / f"f-{ms:04d}-{scale}x.png"
@@ -75,5 +79,19 @@ for i, (label, t) in enumerate(tiles):
     lz.paste(t, (10 + i * (tw + 10), 6))
     d.text((10 + i * (tw + 10), th + 14), label, fill=(233, 236, 241))
 lz.save(OUT / "latch.png")
+# the four corners at every moment, enlarged: what the eye goes to
+f2 = {ms: shot(ms, 2) for ms, _ in MOMENTS[:8]}
+bx = crate_box(f2[0])
+cw2, ch2 = (bx[2] - bx[0]) // 4, (bx[3] - bx[1]) // 3
+spots = [(bx[0] - 20, bx[1] - 20), (bx[2] - cw2 + 20, bx[1] + ch2 // 3),
+         (bx[0] - 20, bx[3] - ch2 + 20), (bx[2] - cw2 + 20, bx[3] - ch2 + 20)]
+cs = Image.new("RGB", (len(f2) * (cw2 + 4), 4 * (ch2 + 4) + 24), (16, 18, 22))
+d = ImageDraw.Draw(cs)
+for i, (ms, f) in enumerate(f2.items()):
+    for j, (x, y) in enumerate(spots):
+        cs.paste(f.crop((x, y, x + cw2, y + ch2)), (i * (cw2 + 4), j * (ch2 + 4)))
+    d.text((i * (cw2 + 4) + 6, 4 * (ch2 + 4) + 6), f"{ms} ms", fill=(233, 236, 241))
+cs.save(OUT / "corners.png")
+print("corners :", OUT / "corners.png", cs.size)
 print("sequence:", OUT / "sequence.png", sheet.size)
 print("latch   :", OUT / "latch.png", lz.size)

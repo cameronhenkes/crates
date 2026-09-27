@@ -312,17 +312,16 @@ def main():
         f'width="{G["CANVAS"]}" height="{G["CANVAS"]}"',
         f'viewBox="{G["OX"]} {G["OY"] + G["BODY_TOP"]} {G["W"]} {G["H"] - G["BODY_TOP"]}" '
         f'width="{G["W"]}" height="{G["H"] - G["BODY_TOP"]}"'))
-    # The sides sit OUTBOARD of the front, so wherever the front's silhouette
-    # curves in at a corner the side is left exposed as a nub. Dropping their
-    # top below where that curve starts hides it, and side walls slightly
-    # lower than the end walls is normal on a real crate anyway.
-    SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"] - 39
-    # the side spans the base between the front and back walls
-    (out / "side.svg").write_text(panel_art(DEPTH - 38, SIDE_H, c, 7, 4, radius=6))
-    # the floor and the long rim span the FOOTPRINT, not the front's
-    # width -- the sides sit outboard, so it is W + WALL_T
-    foot = G["W"] + 39
-    (out / "floor.svg").write_text(floor_piece(foot, DEPTH, c))
+    # The crate is ONE footprint, W wide, and the icon is its front elevation.
+    # The end walls fold BETWEEN the side walls, so the outer wall-thickness
+    # of the icon at each edge is a side wall seen end-on. The sides stop
+    # just below where the top-right corner starts to curve, or their square
+    # ends would break the silhouette.
+    SIDE_H = 468
+    # the side runs the full depth between the two thin end fascias
+    (out / "side.svg").write_text(panel_art(DEPTH - 13, SIDE_H, c, 7, 4, radius=6))
+    # the floor sits inside the tray, between the side walls
+    (out / "floor.svg").write_text(floor_piece(G["W"] - 28, DEPTH - 12, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):
             (out / f"wall-{name}-{face}.svg").write_text(wall_piece(L, c, face))

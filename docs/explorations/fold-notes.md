@@ -786,3 +786,40 @@ reads from the speed change, not from a rebound.
   raising rather than being pushed home.
 - While the base fades in (roughly 40 to 230 ms) it passes through a darker
   half-transparent state.
+
+## The fade is gone: the icon's bottom band is the base
+
+Finding (Cameron): at the start of the fold, and again at the end of the
+unfold, a dark band flickered across the bottom of the front and the base was
+visibly see-through.
+
+Cause: the base was wider than the icon, because the sides sat outboard of a
+full-width front. To keep the resting frame clean the base, back and sides were
+hidden and faded in over the first 190 ms, and the rim, 72 high and in front of
+the front wall, rose over the front's lower edge as it appeared.
+
+Fix, at the source rather than the symptom:
+
+- The crate is one footprint, as wide as the icon. The icon is its front
+  elevation.
+- The icon's bottom band (80 high) is the base. It is a tray extruded front to
+  back from the icon's own lower outline, and its front face carries the band's
+  artwork. It never moves, so nothing can cover the front or be left behind.
+- The end walls hinge behind that face and are a wall thickness narrower than
+  the icon each side, so they fold between the side walls. The strip of icon at
+  each edge is the side wall seen end-on.
+- No material is transparent and nothing is switched on or off. `opacity` does
+  not appear in the file.
+- The closed interior is shaded, and lightens with the front wall's angle.
+
+Known compromises:
+
+- Above the side walls' tops the end wall keeps the icon's full width (the
+  rounded top-right corner and the tab's left edge). Those two slivers pass
+  inside the side walls' thickness as the front folds.
+- Through the slots at rest you now see the shaded inside of the crate, not
+  the page behind it.
+
+Checked in `three-motion-frames.png` (16 moments, six of them inside the first
+quarter second) and `first-quarter-second-corners.png` (all four corners,
+enlarged, 0 to 500 ms). The unfold is the same positions in reverse.
