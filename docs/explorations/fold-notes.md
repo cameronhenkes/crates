@@ -440,3 +440,24 @@ see a thin vertical strip at each edge rather than the icon alone. That is
 unavoidable with a full-width front: either the sides are inboard and get
 passed through, or they are outboard and visible. Honest either way -- a real
 crate's side walls are its outermost surface at that point.
+
+## The crate had no visible bottom
+
+Two causes, both mine.
+
+**The floor was shaded as an interior face.** It is the surface you look down
+onto, so `0xcfcfcf` times Lambert falloff took it almost to black. It is not
+an interior wall and should catch light — now unshaded.
+
+**Its pattern rendered as specks.** `floor_piece` drew slots far smaller than
+the front's, so at scene scale it read as texture noise rather than a
+perforated base. Redrawn in the front's own vocabulary: double-framed panel,
+centre rib, the same slot size and bevels.
+
+Verified in `fold-floor-check.png` at t=0.30 and 0.45 — the base is visible
+and reads as a crate floor.
+
+Worth knowing: the front wall is 684 tall against a 720-deep crate, so once
+it folds it covers nearly the whole floor. The window where the base is
+properly visible is roughly t=0.26 to 0.45. Widening it means a deeper crate,
+which changes the proportions.

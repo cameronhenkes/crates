@@ -168,22 +168,56 @@ def panel_art(w, h, c, cols, rows, rim="top"):
 
 
 def floor_piece(w, d, c):
-    """The crate floor, seen from inside."""
+    """The crate floor, in the same grid vocabulary as the front.
+
+    The first version drew tiny slots that rendered as specks and read as
+    nothing at all -- which is why the crate looked bottomless. This is the
+    front's own language: a double-framed panel, a centre rib, and the same
+    slot size and bevels.
+    """
     from generate import G
-    r = G["R_BR"]          # the crate's own corner radius
-    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="{r}" fill="{c["edge"]}"/>']
-    n = max(6, int(w / 96))
-    for i in range(1, n):
-        x = w * i / n
-        o.append(f'<rect x="{x:.1f}" y="10" width="4" height="{d-20}" '
-                 f'fill="{c["deep"]}" fill-opacity=".3"/>')
-    sw, sh = 15, 44
-    cols = max(5, int(w / 88))
-    for row in (0.32, 0.68):
-        for i in range(cols):
-            x = 24 + (w - 48 - sw) * i / max(1, cols - 1)
-            o.append(f'<rect x="{x:.1f}" y="{d*row - sh/2:.1f}" width="{sw}" '
-                     f'height="{sh}" rx="5" fill="{c["cav"]}" fill-opacity=".8"/>')
+    sw, sh, sr = G["SLOT_W"], G["SLOT_H"], G["SLOT_R"]
+    bev = 3.2
+    rail = 52
+    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="{G["R_BR"]}" '
+         f'fill="{c["base"]}"/>']
+    px0, px1, py0, py1 = rail, w - rail, rail, d - rail
+    o.append(f'<rect x="{px0}" y="{py0}" width="{px1-px0}" height="{py1-py0}" '
+             f'rx="12" fill="{c["edge"]}"/>')
+    o.append(f'<rect x="{px0+1.5}" y="{py0+1.5}" width="{px1-px0-3}" '
+             f'height="{py1-py0-3}" rx="11" fill="none" stroke="{c["cav"]}" '
+             f'stroke-width="3" stroke-opacity=".45"/>')
+    o.append(f'<rect x="{px0+12}" y="{py0+12}" width="{px1-px0-24}" '
+             f'height="{py1-py0-24}" rx="7" fill="none" stroke="{c["hi"]}" '
+             f'stroke-width="3" stroke-opacity=".55"/>')
+    # centre rib, as on the crate base
+    dx, dw = w / 2, 20
+    o.append(f'<rect x="{dx-dw/2}" y="{py0}" width="{dw}" height="{py1-py0}" '
+             f'fill="{c["base"]}"/>')
+    o.append(f'<rect x="{dx-dw/2}" y="{py0}" width="3" height="{py1-py0}" '
+             f'fill="{c["hi"]}" fill-opacity=".8"/>')
+    # the slot grid, front's slot size and bevel
+    pad = 26
+    for sx0, sx1 in ((px0+pad, dx-dw/2-pad), (dx+dw/2+pad, px1-pad)):
+        cols = max(4, int((sx1-sx0) / 34))
+        rows = max(3, int((py1-py0-2*pad) / 96))
+        cp = (sx1-sx0) / cols
+        rp = (py1-py0-2*pad-sh) / max(rows-1, 1)
+        for r in range(rows):
+            y = py0 + pad + r * rp
+            for i in range(cols):
+                x = sx0 + i * cp + (cp - sw) / 2
+                wp = bev * 1.6
+                o.append(f'<rect x="{x-wp:.1f}" y="{y-wp:.1f}" '
+                         f'width="{sw+wp*2:.1f}" height="{sh+wp*2:.1f}" '
+                         f'rx="{sr+wp:.1f}" fill="{c["hi"]}" fill-opacity=".5"/>')
+                o.append(f'<rect x="{x-bev:.1f}" y="{y-bev:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="{sr}" fill="{c["hi"]}"/>')
+                o.append(f'<rect x="{x+bev:.1f}" y="{y+bev*.8:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="{sr}" fill="{c["cav"]}"/>')
+                o.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="{sr}" fill="{c["cav"]}" '
+                         f'fill-opacity=".9"/>')
     return wrap(w, d, "".join(o))
 
 
