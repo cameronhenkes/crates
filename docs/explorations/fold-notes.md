@@ -93,3 +93,36 @@ carry a 150ms delay — short edge first, then long, as the object does.
 
 The plain (non-`--parts`) output is byte-identical throughout; verified by
 raster hash after each change.
+
+## Cameron's correction, and what it exposed
+
+> "The shape of the folder does not change per how it is in real life. It
+> seems like elements appear over the top, but doesn't accurately reflect
+> real-world functionality."
+
+Correct, and it has three separate causes — two fixable, one structural.
+
+**Fixed: the panel showed the wrong face.** A wall hinged at the base and
+folding inward rotates its *inner* face down onto the floor. What ends up
+pointing at you is the **outer** face — smoother, one row of perforations,
+stronger ribs. The first version drew the inner face.
+
+**Fixed: a cross-fade is not a rotation.** A real wall passes through
+edge-on: its visible face narrows to just the top rim, and the outer face
+then opens from that same line. Fading one layer into another skips the only
+moment that reads as hinging, which is exactly why it looked like layers
+appearing. Now built as two-phase keyframes sharing a hinge.
+
+**Fixed: the outline does change, slightly.** Crate walls splay outward for
+stacking, so an assembled crate's outline is a few percent larger than its
+base. Collapsing brings the walls vertical and the silhouette shrinks to the
+footprint. Now a `scale(.958)` across the fold.
+
+**Structural: plan view cannot carry this.** The footprint is constant *by
+design* — that is the point of the mechanism. So the entire information
+content of the fold lives in the axis a top-down icon does not show. Every
+fix above makes A more honest without making it more legible, because the
+thing that changes most in reality (height) is the thing plan view discards.
+
+That is the case for B. Leaving plan view for ~500ms is not decoration; it is
+the only way to show a change that happens in the third axis.

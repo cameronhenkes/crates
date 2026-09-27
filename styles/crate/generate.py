@@ -117,12 +117,13 @@ def silhouette(g):
 
 
 def laid_panel(x, y, w, h, hinge, lit, hi, deep, cavity):
-    """A wall lying flat on the base, inner face up, hinged along one edge.
+    """A wall lying flat on the base, hinged along one edge.
 
-    This is drawn rather than derived from the upright rail on purpose. A
-    folded wall shows a different surface -- its inner face, with the rim that
-    used to be the top edge now pointing inward -- so scaling the rail art
-    into place only ever reads as a smear.
+    This shows the wall's OUTER face. A wall hinged at the base and folding
+    inward rotates its inner face down onto the floor, so the face left
+    pointing at you is the outside -- smoother, fewer perforations, the ribs
+    running hinge-to-rim. Drawing the inner face here was the first version's
+    mistake.
     """
     horiz = hinge in ("left", "right")
     r = 7
@@ -158,16 +159,16 @@ def laid_panel(x, y, w, h, hinge, lit, hi, deep, cavity):
         t = span * i / n
         if horiz:
             o.append(f'<rect x="{x + 8}" y="{y + t:.1f}" width="{w - 16}" '
-                     f'height="3" fill="{deep}" fill-opacity="0.22"/>')
+                     f'height="4" fill="{deep}" fill-opacity="0.30"/>')
         else:
-            o.append(f'<rect x="{x + t:.1f}" y="{y + 8}" width="3" '
-                     f'height="{h - 16}" fill="{deep}" fill-opacity="0.22"/>')
+            o.append(f'<rect x="{x + t:.1f}" y="{y + 8}" width="4" '
+                     f'height="{h - 16}" fill="{deep}" fill-opacity="0.30"/>')
 
     # two rows of perforations, parallel to the hinge. These read dark because
     # the panel is lying ON the base -- you see shadow through them, not sky.
     sw, sh = 13, 46
     depth = w if horiz else h
-    for row in (0.34, 0.68):
+    for row in (0.52,):
         if horiz:
             px = x + depth * row - sw / 2
             cols = max(3, int(h / 78))
