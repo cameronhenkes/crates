@@ -412,3 +412,31 @@ ambient at 1.05.
 
 **The side walls sat near edge-on for most of the fold.** Camera elevation
 topped out at 37 degrees, so their artwork was never legible. Now 49.
+
+## The front was folding through the sides
+
+Cameron: "The front and backs open up through the sides. This is physically
+impossible."
+
+Correct, and it was structural. The front is full width (900) and hinges at
+the crate's front edge, so rotating down it sweeps the entire span between
+the sides. With the sides parked *inside* that span at x = +/-412, the front
+passed straight through them.
+
+Only two ways out, and the fold order decides which:
+
+- **Sides fold first**, then the front and back drop over them. This is what
+  the real crate does (short edge first), but it contradicts the front-first
+  order Cameron specified.
+- **Sides move outboard** of the front's width, so the front and back fold
+  *between* them. This is also how a real crate is assembled -- the end walls
+  drop between the side walls -- and it keeps the front-first order.
+
+Took the second. `SIDE_X = W/2 + TH/2`.
+
+### The trade
+The sides are now a sliver outside the front's silhouette, so at rest you can
+see a thin vertical strip at each edge rather than the icon alone. That is
+unavoidable with a full-width front: either the sides are inboard and get
+passed through, or they are outboard and visible. Honest either way -- a real
+crate's side walls are its outermost surface at that point.

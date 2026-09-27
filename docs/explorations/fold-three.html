@@ -32,12 +32,15 @@ const W = 900, H = 684, D = 720;   // the front face is the icon, tab and all
 // exactly as a folder tab overhangs. Sizing every wall to the full height was
 // what pushed the sides proud of the front at the corners.
 const BODY_TOP = 96, HB = H - BODY_TOP;
-// The front's silhouette is rounded (r=62), so its outline pulls in at every
-// corner. A flat side wall parked at the extreme edge leaves its square
-// corner sticking into that gap -- the wedge Cameron kept seeing. On a real
-// crate the front and back wrap the sides, so the sides sit inboard and the
-// rounded corner covers the joint. INSET is that overlap.
-const R = 62, INSET = R * 0.62, DEPTH_IN = R * 0.62;
+const TH = 13;   // wall thickness, ~1.4% of the crate width
+const R = 62, DEPTH_IN = R * 0.62;
+// The front is full width and hinges at the crate's front edge, so when it
+// rotates down it sweeps the whole span between the sides. With the sides
+// parked INSIDE that span they were passed straight through -- physically
+// impossible, and visible. The sides now sit just OUTSIDE the front's width,
+// so the front and back fold between them, which is how the real crate is
+// assembled: the end walls drop between the side walls.
+const SIDE_X = W/2 + TH/2;
 const SIZE = 460;
 
 const scene = new THREE.Scene();
@@ -92,7 +95,6 @@ function mat(url, shade, flipX){
 // Walls are boxes, not planes. A zero-thickness plane reads as paper at
 // every angle except dead-on, and the folded stack has no layers to it --
 // which is what made the crate look nothing like the moulded original.
-const TH = 13;                    // wall thickness, ~1.4% of the crate width
 function wall(w, h, url, hinge, rot, lift, shade, flipX){
   const pivot = new THREE.Group();
   pivot.position.copy(hinge);
@@ -120,7 +122,7 @@ function wall(w, h, url, hinge, rot, lift, shade, flipX){
   return pivot;
 }
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(W - INSET*0.6, D - INSET*0.6), mat(TEX["floor.png"], true));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(W - R*0.4, D - R*0.4), mat(TEX["floor.png"], true));
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
@@ -136,8 +138,8 @@ const front = wall(W, H, TEX["front.png"], new THREE.Vector3(0,0, D/2), 0, T*1, 
 // the front's instead of beside it.
 // same moulding as the front, cropped to the body -- no second tab
 const back  = wall(W, HB, TEX["back.png"], new THREE.Vector3(0,0,-D/2), 0, T*2, true);
-const left  = wall(D - DEPTH_IN*2, HB, TEX["side.png"], new THREE.Vector3(-W/2 + INSET,0,0), Math.PI/2, T*3, true);
-const right = wall(D - DEPTH_IN*2, HB, TEX["side.png"], new THREE.Vector3( W/2 - INSET,0,0), Math.PI/2, T*4, true);
+const left  = wall(D - DEPTH_IN*2, HB, TEX["side.png"], new THREE.Vector3(-SIDE_X,0,0), Math.PI/2, T*3, true);
+const right = wall(D - DEPTH_IN*2, HB, TEX["side.png"], new THREE.Vector3( SIDE_X,0,0), Math.PI/2, T*4, true);
 
 // Folding inward, derived: front +Y must reach -Z (rot.x -90); back +Y must
 // reach +Z (+90); left +Y must reach +X (rot.z -90); right +Y to -X (+90).
