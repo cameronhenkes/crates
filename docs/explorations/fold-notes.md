@@ -295,3 +295,34 @@ loading. So this scene cannot be checked the way every earlier version was.
 It has an on-page diagnostic instead: three's revision, renderer context,
 texture progress and any thrown error print under the canvas. Check it in a
 real browser.
+
+## Frame-by-frame review does work
+
+I had said this build could not be verified the way the CSS ones were. That
+was wrong. The headless blank was the `file://` texture failure, which the
+data-URI inlining fixed for an unrelated reason — once textures were inlined,
+headless WebGL rendered fine. `review-frames.sh` renders the `?t=` hook at
+eight instants and stitches them, and motion reads perfectly well from stills:
+pacing, ordering, pops and stacking all show up.
+
+Two faults it caught immediately, neither of which I would have guessed:
+
+**The front was 90% folded by t=0.14.** `ease-out cubic` is heavily
+front-loaded — 90% complete at 54% through its span. On a four-beat sequence
+that makes each wall snap and then wait, which reads as a jump. Now
+ease-in-out, which spends the time in the middle where the motion is.
+
+**The camera stopped moving at t=0.55.** It reached its final angle while
+three of the four walls were still folding, so the back half of the animation
+played out in a static frame. Now lifts across the whole fold.
+
+`three-motion-frames.png` is the strip after both fixes: front tips back,
+crate revealed, back drops, left in, right in, flat. Sequential and evenly
+paced.
+
+### Still open
+- The back and side faces read as large flat panels at grazing angles; their
+  perforations are not carrying.
+- D=720 against H=684 makes the crate read as a deep carton rather than a
+  shallow crate. A real one is far wider than it is tall, but the icon's
+  front face fixes that ratio at 1.32:1.

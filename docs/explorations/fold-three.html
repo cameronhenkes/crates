@@ -109,19 +109,26 @@ const BEATS = [
 ];
 const SPAN = 0.26;
 
-const ease = x => 1 - Math.pow(1 - x, 3);
+// ease-out cubic is heavily front-loaded: 90% done at 54% through. On a
+// four-beat sequence that makes each wall snap and then wait, which reads
+// as a jump rather than a fold. ease-in-out spends the time in the middle,
+// where the motion actually is.
+const ease = x => x < 0.5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3) / 2;
 const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
 
 function apply(t){
   for (const b of BEATS){
     b.o.rotation[b.axis] = b.to * ease(clamp01((t - b.at) / SPAN));
   }
-  // the camera lifts and pulls back as it opens, so you see into the crate
-  const c = ease(clamp01(t / 0.55));
-  const dist = 3400 + 700*c;
-  const el = (6 + 40*c) * Math.PI/180;
-  camera.position.set(0, H*0.5 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
-  camera.lookAt(0, H*0.5*(1-c), c*(-D*0.08));
+  // The camera lifts across the WHOLE fold, not the first half. Reaching
+  // its final angle by 55% meant the viewpoint had stopped moving while
+  // three of the four walls were still folding, so the back half of the
+  // animation happened in a static frame.
+  const c = ease(t);
+  const dist = 3400 + 500*c;
+  const el = (5 + 32*c) * Math.PI/180;
+  camera.position.set(0, H*0.42 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
+  camera.lookAt(0, H*0.40*(1-c), c*(-D*0.10));
   renderer.render(scene, camera);
 }
 
