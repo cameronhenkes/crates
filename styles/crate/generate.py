@@ -201,6 +201,36 @@ def build(body, void_col=None, title="Crate", detail="full", parts=False):
 
     g_close()
 
+    g_open('c-divider')
+    # centre divider
+    dx, dw = g["DIV_X"], g["DIV_W"]
+    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="{dw}" height="{py1 - py0}" '
+      f'fill="{base}"/>')
+    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="3" height="{py1 - py0}" '
+      f'fill="{hi}" fill-opacity="0.9"/>')
+    a(f'<rect x="{dx + dw / 2 - 3}" y="{py0}" width="3" height="{py1 - py0}" '
+      f'fill="{cavity}" fill-opacity="0.4"/>')
+
+    g_close()
+
+    g_open('c-grid')
+    # perforation grid
+    pad = g["PANEL_PAD"]
+    sw, sh, sr = g["SLOT_W"], g["SLOT_H"], g["SLOT_R"]
+    rows, cols = g["ROWS"], g["COLS"]
+    gy0, gy1 = g["GRID_Y0"], g["GRID_Y1"]
+    row_pitch = (gy1 - gy0 - sh) / max(rows - 1, 1)
+    spans = ((px0 + pad, dx - dw / 2 - pad), (dx + dw / 2 + pad, px1 - pad))
+    for sx0, sx1 in spans:
+        col_pitch = (sx1 - sx0) / cols
+        for r in range(rows):
+            y = gy0 + r * row_pitch
+            for c in range(cols):
+                x = sx0 + c * col_pitch + (col_pitch - sw) / 2
+                slot(round(x, 1), round(y, 1), sw, sh, sr)
+
+    g_close()
+
     # folded side walls
     for side in (0, 1):
         g_open('c-wall c-wall-left' if side == 0 else 'c-wall c-wall-right')
@@ -231,36 +261,6 @@ def build(body, void_col=None, title="Crate", detail="full", parts=False):
                   f'width="{band - 10}" height="3" rx="1.5" fill="{deep}" '
                   f'fill-opacity="0.35"/>')
         g_close()
-
-    g_open('c-divider')
-    # centre divider
-    dx, dw = g["DIV_X"], g["DIV_W"]
-    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="{dw}" height="{py1 - py0}" '
-      f'fill="{base}"/>')
-    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="3" height="{py1 - py0}" '
-      f'fill="{hi}" fill-opacity="0.9"/>')
-    a(f'<rect x="{dx + dw / 2 - 3}" y="{py0}" width="3" height="{py1 - py0}" '
-      f'fill="{cavity}" fill-opacity="0.4"/>')
-
-    g_close()
-
-    g_open('c-grid')
-    # perforation grid
-    pad = g["PANEL_PAD"]
-    sw, sh, sr = g["SLOT_W"], g["SLOT_H"], g["SLOT_R"]
-    rows, cols = g["ROWS"], g["COLS"]
-    gy0, gy1 = g["GRID_Y0"], g["GRID_Y1"]
-    row_pitch = (gy1 - gy0 - sh) / max(rows - 1, 1)
-    spans = ((px0 + pad, dx - dw / 2 - pad), (dx + dw / 2 + pad, px1 - pad))
-    for sx0, sx1 in spans:
-        col_pitch = (sx1 - sx0) / cols
-        for r in range(rows):
-            y = gy0 + r * row_pitch
-            for c in range(cols):
-                x = sx0 + c * col_pitch + (col_pitch - sw) / 2
-                slot(round(x, 1), round(y, 1), sw, sh, sr)
-
-    g_close()
 
     g_open('c-tab')
     # top flange, then the tab repainted over it
