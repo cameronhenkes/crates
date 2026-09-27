@@ -386,3 +386,29 @@ thickness at every angle except dead-on.
 Checked at rest, 0.20, 0.45 and 0.75. Bottom corners are clean at all four —
 the inset holds now that the front and back wrap the sides. Side walls show
 their moulded edge at 0.20 and 0.45 rather than reading as paper.
+
+### Frame-by-frame, verified against the shipped build
+
+The previous corner grid was rendered with the BoxGeometry version that was
+then replaced, so its findings were stale. Re-run against what is actually on
+disk, all eight instants:
+
+| t | reads as |
+|---|---|
+| 0 | the icon, tab left, clean silhouette |
+| 0.14 | front tipping back, crate appearing behind it |
+| 0.28 | open crate, back wall standing, sides at the edges |
+| 0.42 | back folding forward, perforated floor visible |
+| 0.56 | back down, both sides still standing |
+| 0.70 | left side folding in |
+| 0.84 | right side folding in |
+| 1.0 | flat, layered slab |
+
+Two faults it caught and fixed:
+
+**The interior went almost black.** `0x9a9a9a` times Lambert falloff at
+grazing angles reads as a void rather than shade. Lifted to `0xcfcfcf` with
+ambient at 1.05.
+
+**The side walls sat near edge-on for most of the fold.** Camera elevation
+topped out at 37 degrees, so their artwork was never legible. Now 49.

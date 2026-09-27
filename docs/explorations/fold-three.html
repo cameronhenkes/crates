@@ -50,7 +50,7 @@ diag("renderer ok, ctx=" + (renderer.getContext() ? "yes" : "NO"));
 // Low FOV from far away reads as near-orthographic, so the resting frame is
 // the icon rather than a photograph of it.
 const camera = new THREE.PerspectiveCamera(17, 1, 10, 12000);
-scene.add(new THREE.AmbientLight(0xffffff, 0.92));
+scene.add(new THREE.AmbientLight(0xffffff, 1.05));
 const key = new THREE.DirectionalLight(0xffffff, 0.45);
 key.position.set(-500, 900, 1200); scene.add(key);
 
@@ -80,7 +80,7 @@ function mat(url, shade, flipX){
   // genuinely see-through at every angle. This is the thing CSS could not do.
   return new THREE.MeshLambertMaterial({
     map:t, transparent:true, alphaTest:0.5, side:THREE.DoubleSide,
-    color: shade ? 0x9a9a9a : 0xffffff,
+    color: shade ? 0xcfcfcf : 0xffffff,
     // Folded walls end up almost coplanar with the floor and each other.
     // Without a depth bias the fragments tie and flicker frame to frame --
     // that is the jitter. polygonOffset breaks the tie in the depth test.
@@ -166,7 +166,7 @@ function apply(t){
   // animation happened in a static frame.
   const c = ease(t);
   const dist = 3400 + 500*c;
-  const el = (5 + 32*c) * Math.PI/180;
+  const el = (5 + 44*c) * Math.PI/180;
   camera.position.set(0, H*0.42 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
   camera.lookAt(0, H*0.40*(1-c), c*(-D*0.10));
   renderer.render(scene, camera);
