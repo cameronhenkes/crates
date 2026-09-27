@@ -116,8 +116,11 @@ def silhouette(g):
 
 # ----------------------------------------------------------------- build ----
 
-def build(body, void_col=None, title="Crate", detail="full"):
-    """void_col None punches the perforations through; a hex fills them."""
+def build(body, void_col=None, title="Crate", detail="full", parts=False):
+    """void_col None punches the perforations through; a hex fills them.
+
+    parts=True wraps each structural section in a class-bearing <g> so the
+    piece can be animated independently."""
     g = dict(G)
     full = detail == "full"
     if not full:
@@ -147,6 +150,12 @@ def build(body, void_col=None, title="Crate", detail="full"):
     p = []
     a = p.append
 
+    def g_open(cls):
+        if parts: a(f'<g class="{cls}">')
+
+    def g_close():
+        if parts: a('</g>')
+
     def slot(x, y, w, h, r):
         holes.append((x, y, w, h, r))
         # the well the hole is sunk into: the most legible cue that these are
@@ -175,6 +184,7 @@ def build(body, void_col=None, title="Crate", detail="full"):
     a(f'<path d="{sil}" fill="url(#body)"/>')
     a('<g clip-path="url(#shell)">')
 
+    g_open('c-floor')
     # recessed floor, double-framed
     a(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" '
       f'rx="12" fill="url(#floor)"/>')
@@ -189,8 +199,11 @@ def build(body, void_col=None, title="Crate", detail="full"):
           f'height="{py1 - py0 - 24}" rx="7" fill="none" stroke="{cavity}" '
           f'stroke-width="1.5" stroke-opacity="0.35"/>')
 
+    g_close()
+
     # folded side walls
     for side in (0, 1):
+        g_open('c-wall c-wall-left' if side == 0 else 'c-wall c-wall-right')
         x0 = 0 if side == 0 else W - rail
         a(f'<rect x="{x0}" y="{bt}" width="{rail}" height="{H - bt}" '
           f'fill="{base}"/>')
@@ -217,7 +230,9 @@ def build(body, void_col=None, title="Crate", detail="full"):
                 a(f'<rect x="{bx + 5}" y="{top + i * pitch - 2:.1f}" '
                   f'width="{band - 10}" height="3" rx="1.5" fill="{deep}" '
                   f'fill-opacity="0.35"/>')
+        g_close()
 
+    g_open('c-divider')
     # centre divider
     dx, dw = g["DIV_X"], g["DIV_W"]
     a(f'<rect x="{dx - dw / 2}" y="{py0}" width="{dw}" height="{py1 - py0}" '
@@ -227,6 +242,9 @@ def build(body, void_col=None, title="Crate", detail="full"):
     a(f'<rect x="{dx + dw / 2 - 3}" y="{py0}" width="3" height="{py1 - py0}" '
       f'fill="{cavity}" fill-opacity="0.4"/>')
 
+    g_close()
+
+    g_open('c-grid')
     # perforation grid
     pad = g["PANEL_PAD"]
     sw, sh, sr = g["SLOT_W"], g["SLOT_H"], g["SLOT_R"]
@@ -242,6 +260,9 @@ def build(body, void_col=None, title="Crate", detail="full"):
                 x = sx0 + c * col_pitch + (col_pitch - sw) / 2
                 slot(round(x, 1), round(y, 1), sw, sh, sr)
 
+    g_close()
+
+    g_open('c-tab')
     # top flange, then the tab repainted over it
     a(f'<rect x="0" y="{bt}" width="{W}" height="{flange}" fill="{lit}"/>')
     a(f'<rect x="0" y="{bt}" width="{W}" height="3" fill="{hi}"/>')
@@ -263,6 +284,9 @@ def build(body, void_col=None, title="Crate", detail="full"):
         x = g["TAB_X0"] + i * tpitch + (tpitch - tsw) / 2
         slot(round(x, 1), g["TAB_Y"], tsw, tsh, sr)
 
+    g_close()
+
+    g_open('c-foot')
     # bottom rail and fold-down feet
     a(f'<rect x="0" y="{H - foot}" width="{W}" height="{foot}" fill="{base}"/>')
     a(f'<rect x="0" y="{H - foot}" width="{W}" height="3" fill="{hi}" '
@@ -276,6 +300,8 @@ def build(body, void_col=None, title="Crate", detail="full"):
             a(f'<rect x="{fx:.1f}" y="{H - foot + 4}" width="{fw}" '
               f'height="44" rx="7" fill="{lit}" fill-opacity="0.4" '
               f'stroke="{deep}" stroke-width="2" stroke-opacity="0.25"/>')
+
+    g_close()
 
     a(f'<rect x="0" y="0" width="{W}" height="{H}" fill="url(#sheen)"/>')
     a('</g>')
@@ -340,10 +366,13 @@ def main():
     ap.add_argument("--name", default="Crate", help="title / aria label")
     ap.add_argument("--detail", choices=("full", "simple"), default="full",
                     help="'simple' for the 16/32px iconset slots")
+    ap.add_argument("--parts", action="store_true",
+                    help="wrap structural sections in class-bearing groups, "
+                         "for animation")
     ap.add_argument("-o", "--out", help="write here instead of stdout")
     args = ap.parse_args()
 
-    svg = build(args.colour, args.void, args.name, args.detail)
+    svg = build(args.colour, args.void, args.name, args.detail, args.parts)
     if args.out:
         with open(args.out, "w") as f:
             f.write(svg)

@@ -7,7 +7,7 @@ Ships with one style: a folding produce crate drawn in the silhouette of a
 macOS folder, generated in any colour from a single hex. Bring your own style
 if you'd rather.
 
-![The twelve bundled colours](docs/media/palette.png)
+![Fourteen project folders in a Finder window, each a differently coloured crate](docs/media/in-finder.png)
 
 ## Install
 
@@ -98,6 +98,14 @@ Permissive Security, a broken seal, and OTA updates replaced by full
 reinstalls — and modern macOS resolves many icons through the `Assets.car`
 beside it, so the edit may not even take. Applying icons to the folders you
 actually care about is the better trade.
+
+## An interactive version
+
+`docs/interactive/` has the crate as a component that folds flat when you
+click it -- a plain `<button>`, CSS transitions, no motion library. There is a
+standalone HTML version and a React one.
+
+![Five frames of the crate folding flat](docs/media/motion-fold.png)
 
 ## Your own styles
 
