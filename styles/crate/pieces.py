@@ -21,6 +21,9 @@ WALL_H = 232
 DEPTH = 950      # deeper than the walls are tall, or a folded wall
                  # covers the whole floor and the crate reads bottomless
 RIM = 54         # the base's upstanding perimeter, which the walls hinge into
+WALL_T = 13      # wall thickness; the footprint is W + WALL_T wide because
+                 # the sides sit outboard of the front
+FOOT_W = None    # set in main() once the palette colour is known
 
 
 def shades(body):
@@ -314,9 +317,13 @@ def main():
     # top below where that curve starts hides it, and side walls slightly
     # lower than the end walls is normal on a real crate anyway.
     SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"]
-    (out / "side.svg").write_text(panel_art(DEPTH, SIDE_H, c, 7, 4))
-    (out / "floor.svg").write_text(floor_piece(G["W"], DEPTH, c))
-    (out / "rim-long.svg").write_text(rim_piece(G["W"], RIM, c))
+    # the side spans the base between the front and back walls
+    (out / "side.svg").write_text(panel_art(DEPTH - 26, SIDE_H, c, 7, 4))
+    # the floor and the long rim span the FOOTPRINT, not the front's
+    # width -- the sides sit outboard, so it is W + WALL_T
+    foot = G["W"] + WALL_T
+    (out / "floor.svg").write_text(floor_piece(foot, DEPTH, c))
+    (out / "rim-long.svg").write_text(rim_piece(foot, RIM, c))
     (out / "rim-short.svg").write_text(rim_piece(DEPTH, RIM, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):

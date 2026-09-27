@@ -592,3 +592,29 @@ The rim is visible below the front wall at rest, so the resting frame is the
 icon sitting on a base band rather than the icon alone. That is what a real
 crate looks like -- the front wall sits on the base rim -- but it is a
 departure from the pure icon. Cameron's call.
+
+## Alignment: one footprint, derived
+
+Cameron: the sides and the front are not aligned with the bottom.
+
+Correct, and it was fallout from deepening the crate. `DEPTH_IN` had been
+tuned when `D` was 720; once `D` became 950 the sides were still inset by
+that fixed amount, leaving them 807 wide against a 925-deep base — and their
+texture squashed to fit the narrower plane.
+
+Everything now derives from one footprint, `(W + TH) x D`:
+
+| part | size | from |
+|---|---|---|
+| floor | 913 x 950 | footprint |
+| long rim | 913 | footprint width |
+| short rim | 950 | footprint depth |
+| side wall | 924 | `D - TH*2`, spanning between front and back |
+| front / back | 900 | the icon |
+
+The floor and long rim were also being drawn at 900 and used at 913 — a 1.4%
+stretch, small enough to pass a glance and exactly the kind of drift that
+resurfaces later as "the alignment is off". Both now generate at the
+footprint width.
+
+Every texture is checked against the plane it maps to before inlining.
