@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# render.sh <input.svg|input.html> <output.png> [width] [height]
+set -uo pipefail
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+IN="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+W="${3:-1024}"; H="${4:-$W}"
+TMP="$(mktemp -d)"
+rm -f "$2"
+"$CHROME" --headless --disable-gpu --no-sandbox --hide-scrollbars \
+  --force-device-scale-factor=1 --default-background-color=00000000 \
+  --user-data-dir="$TMP" --window-size="${W},${H}" \
+  --virtual-time-budget=2000 \
+  --screenshot="$2" "file://$IN" >/dev/null 2>&1 &
+CPID=$!
+for _ in $(seq 1 40); do [ -s "$2" ] && break; sleep 0.5; done
+sleep 0.5; kill "$CPID" 2>/dev/null; wait "$CPID" 2>/dev/null
+rm -rf "$TMP"
+[ -s "$2" ] && echo "rendered $2" || { echo "render failed"; exit 1; }

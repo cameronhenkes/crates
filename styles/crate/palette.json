@@ -1,0 +1,14 @@
+{
+  "sky":        { "hex": "#C3D2E1", "label": "Sky" },
+  "butter":     { "hex": "#EEDFA6", "label": "Butter" },
+  "lavender":   { "hex": "#C6BFD8", "label": "Lavender" },
+  "olive":      { "hex": "#9E9B63", "label": "Olive" },
+  "rust":       { "hex": "#C0614B", "label": "Rust" },
+  "ochre":      { "hex": "#D79A4D", "label": "Ochre" },
+  "sage":       { "hex": "#9EB29A", "label": "Sage" },
+  "peach":      { "hex": "#E8B69B", "label": "Peach" },
+  "chalk":      { "hex": "#EBE9E3", "label": "Chalk" },
+  "stone":      { "hex": "#C7C7C1", "label": "Stone" },
+  "anthracite": { "hex": "#55565A", "label": "Anthracite" },
+  "ink":        { "hex": "#3A3A3C", "label": "Ink" }
+}

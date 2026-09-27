@@ -1,0 +1,9 @@
+{
+  "name": "crate",
+  "label": "Folding produce crate",
+  "description": "A stackable plastic crate drawn in the silhouette of a macOS folder. Perforations are cut through, so the wallpaper shows past them.",
+  "generator": "generate.py",
+  "palette": "palette.json",
+  "detail": { "full": "full", "small": "simple" },
+  "credit": "Inspired by a crate-as-folder concept seen online, drawn from scratch as vector art."
+}

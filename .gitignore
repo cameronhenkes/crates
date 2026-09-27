@@ -1,0 +1,8 @@
+# macOS custom folder icon (the artwork lives in the resource fork; the file
+# itself is empty, so committing it only adds noise)
+Icon?
+.DS_Store
+
+# generated artwork and icons
+build/
+*.iconset/

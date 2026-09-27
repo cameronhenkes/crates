@@ -1,0 +1,392 @@
+#!/usr/bin/env bash
+# crates -- give macOS folders custom icons, in bulk, with a scheme.
+# https://github.com/cameronhenkes/crates
+set -uo pipefail
+
+# resolve through symlinks so this works when linked onto PATH
+SELF="${BASH_SOURCE[0]}"
+while [ -L "$SELF" ]; do
+  D="$(cd -P "$(dirname "$SELF")" && pwd)"; SELF="$(readlink "$SELF")"
+  [[ "$SELF" != /* ]] && SELF="$D/$SELF"
+done
+ROOT="$(cd -P "$(dirname "$SELF")" && pwd)"
+BUILD="$ROOT/build"
+STYLES="$ROOT/styles"
+
+die() { printf 'crates: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# ---------------------------------------------------------------- helpers ---
+
+chrome_path() {
+  for p in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+           "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+           "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+           "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"; do
+    [ -x "$p" ] && { echo "$p"; return 0; }
+  done
+  return 1
+}
+
+# Turn "style:variant", a bare variant, or a file path into an .icns path.
+resolve_icon() {
+  local spec="$1"
+  if [ -f "$spec" ]; then
+    case "$spec" in
+      *.icns) echo "$spec"; return 0 ;;
+      *.png|*.jpg|*.jpeg|*.svg|*.tiff)
+        local out="$BUILD/_custom/$(basename "${spec%.*}").icns"
+        mkdir -p "$(dirname "$out")"
+        icns_from_image "$spec" "$out" && { echo "$out"; return 0; }
+        return 1 ;;
+      *) die "unsupported icon file: $spec (use .icns, .png, .svg)" ;;
+    esac
+  fi
+  local style variant
+  if [[ "$spec" == *:* ]]; then style="${spec%%:*}"; variant="${spec#*:}"
+  else style="$(default_style)"; variant="$spec"; fi
+  [ -d "$STYLES/$style" ] || die "no such style: $style (try: crates list)"
+  local safe="${variant//#/hex-}"
+  local icns="$BUILD/$style/$safe.icns"
+  [ -f "$icns" ] || build_variant "$style" "$variant" >/dev/null || return 1
+  echo "$icns"
+}
+
+default_style() {
+  [ -d "$STYLES/crate" ] && { echo crate; return; }
+  basename "$(find "$STYLES" -mindepth 1 -maxdepth 1 -type d | head -1)"
+}
+
+variant_hex() {  # style variant -> hex, or the variant itself if it is one
+  local style="$1" v="$2"
+  [[ "$v" == \#* ]] && { echo "$v"; return 0; }
+  local pal="$STYLES/$style/palette.json"
+  [ -f "$pal" ] || return 1
+  python3 -c "
+import json,sys
+p=json.load(open('$pal'))
+e=p.get('$v')
+sys.exit(1) if e is None else print(e['hex'] if isinstance(e,dict) else e)"
+}
+
+# Rasterise an SVG at a given size using a headless Chromium-family browser.
+render_svg() {
+  local svg="$1" png="$2" size="$3"
+  local chrome; chrome="$(chrome_path)" || die \
+    "need Chrome, Chromium, Edge or Brave to rasterise SVG (or supply a .png)"
+  local tmp; tmp="$(mktemp -d)"; rm -f "$png"
+  "$chrome" --headless --disable-gpu --no-sandbox --hide-scrollbars \
+    --force-device-scale-factor=1 --default-background-color=00000000 \
+    --user-data-dir="$tmp" --window-size="$size,$size" \
+    --virtual-time-budget=2000 --screenshot="$png" "file://$svg" \
+    >/dev/null 2>&1 &
+  local pid=$!
+  for _ in $(seq 1 40); do [ -s "$png" ] && break; sleep 0.5; done
+  sleep 0.4; kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rm -rf "$tmp"
+  [ -s "$png" ]
+}
+
+# Assemble an .icns from a 1024px "full" png and an optional "small" png used
+# for the 16/32 slots -- fine detail turns to mush below about 48px, which is
+# why Apple's own icons simplify at those sizes too.
+assemble_icns() {
+  local full="$1" small="${2:-$1}" out="$3"
+  local set; set="$(mktemp -d)/icon.iconset"; mkdir -p "$set"
+  _slot() { cp "$3" "$set/$1"; sips -z "$2" "$2" "$set/$1" >/dev/null 2>&1; }
+  _slot icon_16x16.png       16   "$small"
+  _slot icon_16x16@2x.png    32   "$small"
+  _slot icon_32x32.png       32   "$small"
+  _slot icon_32x32@2x.png    64   "$full"
+  _slot icon_128x128.png     128  "$full"
+  _slot icon_128x128@2x.png  256  "$full"
+  _slot icon_256x256.png     256  "$full"
+  _slot icon_256x256@2x.png  512  "$full"
+  _slot icon_512x512.png     512  "$full"
+  _slot icon_512x512@2x.png  1024 "$full"
+  mkdir -p "$(dirname "$out")"
+  iconutil -c icns "$set" -o "$out" && rm -rf "$(dirname "$set")"
+}
+
+icns_from_image() {  # any image -> .icns, squared to 1024
+  local src="$1" out="$2" tmp; tmp="$(mktemp -d)"
+  case "$src" in
+    *.svg) render_svg "$(cd "$(dirname "$src")" && pwd)/$(basename "$src")" \
+             "$tmp/full.png" 1024 || return 1 ;;
+    *) cp "$src" "$tmp/full.png"
+       sips -z 1024 1024 "$tmp/full.png" >/dev/null 2>&1 ;;
+  esac
+  assemble_icns "$tmp/full.png" "$tmp/full.png" "$out"
+}
+
+build_variant() {
+  local style="$1" variant="$2"
+  local safe="${variant//#/hex-}"
+  local dir="$STYLES/$style" out="$BUILD/$style/$safe.icns"
+  [ -f "$out" ] && { echo "$out"; return 0; }
+
+  # static style: pre-made icons in styles/<style>/icons/
+  if [ -f "$dir/icons/$variant.icns" ]; then
+    mkdir -p "$(dirname "$out")"; cp "$dir/icons/$variant.icns" "$out"
+    echo "$out"; return 0
+  fi
+
+  local gen; gen="$(python3 -c "
+import json;print(json.load(open('$dir/style.json')).get('generator',''))" \
+    2>/dev/null)"
+  [ -n "$gen" ] || die "style '$style' has no generator and no icons/$variant.icns"
+  local hex; hex="$(variant_hex "$style" "$variant")" \
+    || die "'$variant' is not in $style's palette, and is not a #hex"
+
+  local tmp; tmp="$(mktemp -d)"
+  printf 'crates: building %s:%s ...\n' "$style" "$variant" >&2
+  "$dir/$gen" "$hex" --name "$variant" -o "$tmp/full.svg" || return 1
+  "$dir/$gen" "$hex" --name "$variant" --detail simple -o "$tmp/small.svg" \
+    2>/dev/null || cp "$tmp/full.svg" "$tmp/small.svg"
+  render_svg "$tmp/full.svg"  "$tmp/full.png"  1024 || return 1
+  render_svg "$tmp/small.svg" "$tmp/small.png" 1024 || cp "$tmp/full.png" "$tmp/small.png"
+  assemble_icns "$tmp/full.png" "$tmp/small.png" "$out" || return 1
+  rm -rf "$tmp"; echo "$out"
+}
+
+apply_icon() {  # icns target
+  osascript "$ROOT/lib/set-icon.applescript" "$1" "$2" >/dev/null 2>&1
+}
+
+abspath() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
+
+# ----------------------------------------------------------------- commands -
+
+cmd_list() {
+  printf 'styles:\n'
+  for d in "$STYLES"/*/; do
+    [ -d "$d" ] || continue
+    local n; n="$(basename "$d")"
+    local label; label="$(python3 -c "
+import json;print(json.load(open('$d/style.json')).get('label',''))" 2>/dev/null)"
+    printf '  %-10s %s\n' "$n" "$label"
+    if [ -f "$d/palette.json" ]; then
+      printf '    variants: '
+      python3 -c "
+import json;print(' '.join(json.load(open('$d/palette.json')).keys()))"
+    fi
+    [ -d "$d/icons" ] && { printf '    variants: '
+      /bin/ls "$d/icons" | sed 's/\.icns$//' | tr '\n' ' '; echo; }
+  done
+  printf '\nany #hex works too:  crates apply crate:#7B9E89 ~/Notes\n'
+}
+
+cmd_apply() {
+  [ $# -ge 2 ] || die "usage: crates apply <style:variant|file> <folder>..."
+  local spec="$1"; shift
+  local icns; icns="$(resolve_icon "$spec")" || exit 1
+  local n=0
+  for t in "$@"; do
+    [ -e "$t" ] || { printf 'crates: no such folder: %s\n' "$t" >&2; continue; }
+    if apply_icon "$icns" "$(abspath "$t")"; then
+      n=$((n+1)); printf '  %s -> %s\n' "$spec" "$t"
+    else printf 'crates: failed on %s\n' "$t" >&2; fi
+  done
+  [ "$n" -gt 0 ] && refresh_finder
+}
+
+cmd_sweep() {
+  local dir="" scheme="shuffle" style depth=1 dry=0
+  style="$(default_style)"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --scheme) scheme="$2"; shift 2 ;;
+      --style)  style="$2";  shift 2 ;;
+      --depth)  depth="$2";  shift 2 ;;
+      --dry-run) dry=1; shift ;;
+      -*) die "unknown flag: $1" ;;
+      *) dir="$1"; shift ;;
+    esac
+  done
+  [ -n "$dir" ] || die "usage: crates sweep <dir> [--scheme inherit|shuffle] [--depth N]"
+  [ -d "$dir" ] || die "no such directory: $dir"
+  dir="$(abspath "$dir")"
+
+  local variants; variants="$(python3 -c "
+import json;print(' '.join(json.load(open('$STYLES/$style/palette.json')).keys()))" \
+    2>/dev/null)" || die "style '$style' has no palette to sweep with"
+
+  # Build the folder -> variant plan first, so --dry-run can show it and so a
+  # shuffled deal uses every variant before repeating any.
+  local plan; plan="$(python3 - "$dir" "$depth" "$scheme" $variants <<'PY'
+import os, random, sys
+root, depth, scheme, *variants = sys.argv[1:]
+depth = int(depth)
+SKIP = {"node_modules", ".git", "_archive", "build", "Pods", "vendor"}
+
+def dirs_at(base, level):
+    out = []
+    for name in sorted(os.listdir(base)):
+        p = os.path.join(base, name)
+        if not os.path.isdir(p) or name.startswith(".") or name in SKIP:
+            continue
+        if level == 1: out.append(p)
+        else: out += dirs_at(p, level - 1)
+    return out
+
+if scheme == "inherit":
+    # level-1 folders get a shuffled deal; everything deeper takes its
+    # top-level ancestor's variant, so colour reads as "which area is this".
+    tops = dirs_at(root, 1)
+    random.shuffle(variants)
+    deal = (variants * (len(tops)//len(variants) + 1))[:len(tops)]
+    top_of = dict(zip(tops, deal))
+    targets = list(tops)
+    for d in range(2, depth + 1):
+        targets += dirs_at(root, d)
+    for t in targets:
+        anc = next((k for k in tops if t == k or t.startswith(k + os.sep)), None)
+        if anc: print(f"{t}\t{top_of[anc]}")
+else:
+    targets = []
+    for d in range(1, depth + 1):
+        targets += dirs_at(root, d)
+    random.shuffle(variants)
+    deal = (variants * (len(targets)//len(variants) + 1))[:len(targets)]
+    for t, v in zip(targets, deal):
+        print(f"{t}\t{v}")
+PY
+)"
+  local count; count="$(printf '%s\n' "$plan" | grep -c . || true)"
+  [ "$count" -gt 0 ] || die "no folders found at depth 1..$depth under $dir"
+
+  printf 'crates: %s folders, scheme=%s, style=%s\n' "$count" "$scheme" "$style"
+  if [ "$dry" = 1 ]; then
+    printf '%s\n' "$plan" | while IFS=$'\t' read -r t v; do
+      printf '  %-58s %s\n' "${t#$dir/}" "$v"; done
+    printf '\n(dry run -- nothing applied)\n'; return 0
+  fi
+
+  # warn before pushing hundreds of megabytes into iCloud
+  case "$dir" in
+    "$HOME/Desktop"*|"$HOME/Documents"*)
+      if [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+        printf 'crates: note -- %s may be iCloud-synced; each icon is a\n' "$dir"
+        printf '        ~500KB resource fork that will upload.\n'
+      fi ;;
+  esac
+
+  local n=0
+  while IFS=$'\t' read -r t v; do
+    [ -n "$t" ] || continue
+    local icns; icns="$(resolve_icon "$style:$v")" || continue
+    apply_icon "$icns" "$t" && n=$((n+1))
+  done <<< "$plan"
+  printf 'crates: applied %s of %s\n' "$n" "$count"
+  refresh_finder
+}
+
+cmd_undo() {
+  [ $# -ge 1 ] || die "usage: crates undo <dir> [--depth N]"
+  local dir="$1"; shift
+  local depth=2
+  [ "${1:-}" = "--depth" ] && depth="$2"
+  dir="$(abspath "$dir")"
+  local n; n="$(find "$dir" -maxdepth "$depth" -name 'Icon?' 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$n" -gt 0 ] || { printf 'crates: no custom icons under %s\n' "$dir"; return 0; }
+  find "$dir" -maxdepth "$depth" -name 'Icon?' -delete 2>/dev/null
+  printf 'crates: removed %s icon(s)\n' "$n"
+  refresh_finder
+}
+
+cmd_volume() {
+  [ $# -ge 1 ] || die "usage: crates volume <style:variant|file>   (needs sudo)"
+  local icns; icns="$(resolve_icon "$1")" || exit 1
+  [ -L /.VolumeIcon.icns ] || die \
+    "/.VolumeIcon.icns is not the symlink this relies on; your macOS may differ"
+  printf 'crates: this needs sudo to write the boot volume icon.\n'
+  sudo cp "$icns" /System/Volumes/Data/.VolumeIcon.icns || exit 1
+  printf 'crates: set. Log out and back in if Finder does not update.\n'
+  refresh_finder
+}
+
+cmd_build() {
+  [ $# -ge 1 ] || die "usage: crates build <style>[:variant]"
+  local spec="$1" style variant
+  if [[ "$spec" == *:* ]]; then style="${spec%%:*}"; variant="${spec#*:}"
+  else style="$spec"; variant=""; fi
+  if [ -n "$variant" ]; then build_variant "$style" "$variant" >/dev/null \
+    && printf '  built %s:%s\n' "$style" "$variant"; return; fi
+  for v in $(python3 -c "
+import json;print(' '.join(json.load(open('$STYLES/$style/palette.json')).keys()))"); do
+    build_variant "$style" "$v" >/dev/null && printf '  built %s:%s\n' "$style" "$v"
+  done
+}
+
+cmd_doctor() {
+  printf 'crates doctor\n'
+  printf '  macOS:      %s\n' "$(sw_vers -productVersion 2>/dev/null || echo 'NOT macOS -- this tool is macOS only')"
+  for t in sips iconutil osascript python3; do
+    have "$t" && printf '  %-11s ok\n' "$t:" || printf '  %-11s MISSING\n' "$t:"
+  done
+  if chrome_path >/dev/null; then
+    printf '  browser:    %s\n' "$(basename "$(chrome_path)")"
+  else
+    printf '  browser:    none found -- generated styles need Chrome/Chromium/Edge/Brave.\n'
+    printf '              Pre-made .icns and .png icons still work.\n'
+  fi
+  local ex; ex="$(git config --global core.excludesfile 2>/dev/null || true)"
+  if [ -n "$ex" ] && grep -q 'Icon' "$ex" 2>/dev/null; then
+    printf '  git:        Icon? is globally ignored, good\n'
+  else
+    printf '  git:        Icon? is NOT globally ignored -- custom icons will show\n'
+    printf '              as untracked in every repo. Fix: crates gitignore\n'
+  fi
+}
+
+cmd_gitignore() {
+  local f="${HOME}/.gitignore_global"
+  grep -q '^Icon?$' "$f" 2>/dev/null || printf 'Icon?\n' >> "$f"
+  git config --global core.excludesfile "$f"
+  printf 'crates: Icon? added to %s and wired to core.excludesfile\n' "$f"
+}
+
+refresh_finder() { killall Finder 2>/dev/null || true; }
+
+usage() {
+cat <<'TXT'
+crates -- give macOS folders custom icons, in bulk, with a scheme.
+
+  crates list                            styles and their variants
+  crates apply <icon> <folder>...        apply to folders or Finder aliases
+  crates sweep <dir> [opts]              apply across a tree
+  crates undo <dir> [--depth N]          remove custom icons
+  crates volume <icon>                   set the boot volume icon (sudo)
+  crates build <style>[:variant]         pre-build icons
+  crates doctor                          check this machine
+  crates gitignore                       stop Icon? dirtying your repos
+
+<icon> is "style:variant" (crate:rust), a "#hex" for a generated style
+(crate:#7B9E89), or a path to a .icns / .png / .svg file.
+
+sweep options:
+  --scheme inherit     children take their top-level folder's variant
+  --scheme shuffle     every variant used before any repeats (default)
+  --depth N            how deep to go (default 1)
+  --style NAME         which style to sweep with
+  --dry-run            print the plan, change nothing
+
+examples:
+  crates apply crate:rust ~/Documents/Design
+  crates apply ./my-icon.png ~/Notes
+  crates sweep ~/Projects --scheme inherit --depth 2 --dry-run
+  crates undo ~/Projects
+TXT
+}
+
+case "${1:-}" in
+  list)      shift; cmd_list "$@" ;;
+  apply)     shift; cmd_apply "$@" ;;
+  sweep)     shift; cmd_sweep "$@" ;;
+  undo)      shift; cmd_undo "$@" ;;
+  volume)    shift; cmd_volume "$@" ;;
+  build)     shift; cmd_build "$@" ;;
+  doctor)    shift; cmd_doctor "$@" ;;
+  gitignore) shift; cmd_gitignore "$@" ;;
+  ""|-h|--help|help) usage ;;
+  *) die "unknown command: $1 (try: crates --help)" ;;
+esac
