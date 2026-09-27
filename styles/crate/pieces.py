@@ -91,20 +91,67 @@ def wall_piece(length, c, face):
     return wrap(length, h, "".join(o))
 
 
-def inner_panel(w, h, c):
-    """A plain inner face -- what you see looking INTO the crate once the
-    front has folded away. Quieter than the front, because it is background."""
-    o = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="10" fill="{c["edge"]}"/>']
-    o.append(f'<rect x="5" y="4" width="{w-10}" height="10" rx="5" fill="{c["hi"]}"/>')
-    n = max(5, int(w / 118))
-    cw = (w - 26) / n - 11
+def panel_art(w, h, c, cols, rows, rim="top"):
+    """A crate panel in the SAME visual language as the front.
+
+    The sides were previously a generic ribbed rectangle I invented, which is
+    why they did not read as the same object. This reuses the front's actual
+    vocabulary: the double frame, the perforation grid with its lit well and
+    shadow bevel, the rim, and the folded-wall ladder down each edge.
+    """
+    from generate import G
+    sw, sh, sr = G["SLOT_W"], G["SLOT_H"], G["SLOT_R"]
+    bev, rail = 3.2, 46
+    o = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="14" fill="{c["base"]}"/>']
+
+    # the ladder of recesses down each long edge, as on the crate's walls
+    n = max(3, int(h / 96))
+    pitch = (h - 40) / n
     for i in range(n):
-        x = 13 + i * (cw + 11)
-        o.append(f'<rect x="{x:.1f}" y="26" width="{cw:.1f}" height="{h-50}" '
-                 f'rx="6" fill="{c["base"]}"/>')
-        o.append(f'<rect x="{x:.1f}" y="22" width="{cw:.1f}" height="{h-50}" '
-                 f'rx="6" fill="none" stroke="{c["hi"]}" stroke-width="2.5" '
-                 f'stroke-opacity=".45"/>')
+        ry, rh = 20 + i * pitch + 4, pitch - 12
+        for rx in (10, w - rail + 10):
+            o.append(f'<rect x="{rx}" y="{ry:.1f}" width="{rail-20}" '
+                     f'height="{rh:.1f}" rx="4" fill="{c["edge"]}" fill-opacity=".55"/>')
+            o.append(f'<rect x="{rx}" y="{ry-2:.1f}" width="{rail-20}" '
+                     f'height="{rh:.1f}" rx="4" fill="none" stroke="{c["hi"]}" '
+                     f'stroke-width="2" stroke-opacity=".45"/>')
+
+    # recessed floor with the double frame
+    px0, px1, py0, py1 = rail, w - rail, 34, h - 30
+    o.append(f'<rect x="{px0}" y="{py0}" width="{px1-px0}" height="{py1-py0}" '
+             f'rx="10" fill="{c["edge"]}"/>')
+    o.append(f'<rect x="{px0+1.5}" y="{py0+1.5}" width="{px1-px0-3}" '
+             f'height="{py1-py0-3}" rx="9" fill="none" stroke="{c["cav"]}" '
+             f'stroke-width="3" stroke-opacity=".5"/>')
+    o.append(f'<rect x="{px0+11}" y="{py0+11}" width="{px1-px0-22}" '
+             f'height="{py1-py0-22}" rx="6" fill="none" stroke="{c["hi"]}" '
+             f'stroke-width="3" stroke-opacity=".6"/>')
+
+    # the perforation grid, same slot size and bevel as the front
+    gx0, gx1 = px0 + 24, px1 - 24
+    gy0, gy1 = py0 + 26, py1 - 26
+    cp = (gx1 - gx0) / cols
+    rp = (gy1 - gy0 - sh) / max(rows - 1, 1)
+    for r in range(rows):
+        y = gy0 + r * rp
+        for i in range(cols):
+            x = gx0 + i * cp + (cp - sw) / 2
+            wp = bev * 1.6
+            o.append(f'<rect x="{x-wp:.1f}" y="{y-wp:.1f}" width="{sw+wp*2:.1f}" '
+                     f'height="{sh+wp*2:.1f}" rx="{sr+wp:.1f}" fill="{c["hi"]}" '
+                     f'fill-opacity=".55"/>')
+            o.append(f'<rect x="{x-bev:.1f}" y="{y-bev:.1f}" width="{sw}" '
+                     f'height="{sh}" rx="{sr}" fill="{c["hi"]}"/>')
+            o.append(f'<rect x="{x+bev:.1f}" y="{y+bev*.8:.1f}" width="{sw}" '
+                     f'height="{sh}" rx="{sr}" fill="{c["cav"]}"/>')
+            o.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{sw}" height="{sh}" '
+                     f'rx="{sr}" fill="{c["cav"]}" fill-opacity=".92"/>')
+
+    # the rim -- the crate's top edge, on whichever side is the free edge
+    if rim == "top":
+        o.append(f'<rect x="6" y="5" width="{w-12}" height="12" rx="6" fill="{c["hi"]}"/>')
+    o.append(f'<rect x="0" y="0" width="{w}" height="{h}" rx="14" fill="none" '
+             f'stroke="{c["edge"]}" stroke-width="2" stroke-opacity=".7"/>')
     return wrap(w, h, "".join(o))
 
 
@@ -134,8 +181,8 @@ def main():
     c = shades(a.colour)
     out = pathlib.Path(a.dir); out.mkdir(parents=True, exist_ok=True)
     (out / "base.svg").write_text(base_piece(c, a.colour))
-    (out / "back.svg").write_text(inner_panel(G["W"], G["H"], c))
-    (out / "side.svg").write_text(inner_panel(DEPTH, G["H"], c))
+    (out / "back.svg").write_text(panel_art(G["W"], G["H"], c, 9, 4))
+    (out / "side.svg").write_text(panel_art(DEPTH, G["H"], c, 7, 4))
     (out / "floor.svg").write_text(floor_piece(G["W"], DEPTH, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):

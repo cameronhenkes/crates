@@ -61,14 +61,23 @@ function mat(url){
   // pixels, so the depth buffer stays authoritative and the perforations are
   // genuinely see-through at every angle. This is the thing CSS could not do.
   return new THREE.MeshLambertMaterial({
-    map:t, transparent:true, alphaTest:0.5, side:THREE.DoubleSide });
+    map:t, transparent:true, alphaTest:0.5, side:THREE.DoubleSide,
+    // Folded walls end up almost coplanar with the floor and each other.
+    // Without a depth bias the fragments tie and flicker frame to frame --
+    // that is the jitter. polygonOffset breaks the tie in the depth test.
+    polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1 });
 }
 
 /** A wall hinged on a base edge. The pivot sits ON the hinge; the plane is
  *  offset so it stands up from it, so rotating the pivot IS the fold. */
-function wall(w, h, url, hinge, rot){
+function wall(w, h, url, hinge, rot, lift){
   const pivot = new THREE.Group();
   pivot.position.copy(hinge);
+  // Real walls have thickness, so a folded crate is a stack, not a pile of
+  // coincident planes. Lifting each wall by the thickness of the ones that
+  // folded before it gives the correct stacking order AND separates them in
+  // depth, which is the other half of the jitter fix.
+  pivot.position.y += lift || 0;
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(url));
   mesh.position.set(0, h/2, 0);
   if (rot) mesh.rotation.y = rot;
@@ -81,10 +90,14 @@ const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(TEX["floor.png"]
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
-const front = wall(W, H, TEX["front.png"], new THREE.Vector3(0,0, D/2));
-const back  = wall(W, H, TEX["back.png"],  new THREE.Vector3(0,0,-D/2));
-const left  = wall(D, H, TEX["side.png"],  new THREE.Vector3(-W/2,0,0), Math.PI/2);
-const right = wall(D, H, TEX["side.png"],  new THREE.Vector3( W/2,0,0), Math.PI/2);
+// Walls have thickness, so a folded crate is a stack. Each wall is lifted
+// by the thickness of the ones that fold before it: correct stacking order,
+// and it separates them in depth so coplanar fragments stop fighting.
+const T = 7;
+const front = wall(W, H, TEX["front.png"], new THREE.Vector3(0,0, D/2), 0, T*1);
+const back  = wall(W, H, TEX["back.png"],  new THREE.Vector3(0,0,-D/2), 0, T*2);
+const left  = wall(D, H, TEX["side.png"],  new THREE.Vector3(-W/2,0,0), Math.PI/2, T*3);
+const right = wall(D, H, TEX["side.png"],  new THREE.Vector3( W/2,0,0), Math.PI/2, T*4);
 
 // Folding inward, derived: front +Y must reach -Z (rot.x -90); back +Y must
 // reach +Z (+90); left +Y must reach +X (rot.z -90); right +Y to -X (+90).
@@ -112,14 +125,16 @@ function apply(t){
   renderer.render(scene, camera);
 }
 
-let t = 0, target = 0, raf = null;
+let t = 0, target = 0, raf = null, last = 0;
 const DUR = 1500;
-function run(){
-  const dir = target > t ? 1 : -1, step = 16/DUR;
-  t = clamp01(t + dir*step);
+function run(now){
+  if (!last) last = now;
+  const dt = Math.min(now - last, 50); last = now;
+  const dir = target > t ? 1 : -1;
+  t = clamp01(t + dir * dt / DUR);
   apply(t);
   if ((dir > 0 && t < target) || (dir < 0 && t > target)) raf = requestAnimationFrame(run);
-  else { raf = null; window.__t = t; }
+  else { raf = null; last = 0; window.__t = t; }
 }
 const btn = document.getElementById("wrap"), st = document.getElementById("state");
 btn.addEventListener("click", () => {
@@ -127,7 +142,7 @@ btn.addEventListener("click", () => {
   btn.setAttribute("aria-pressed", String(open));
   st.innerHTML = "Crate is <b>" + (open ? "folded flat" : "closed") +
                  "</b> &middot; click to " + (open ? "unfold" : "fold");
-  if (!raf) raf = requestAnimationFrame(run);
+  if (!raf) { last = 0; raf = requestAnimationFrame(run); }
 });
 
 // frame-by-frame hook: ?t=0.42 renders that instant and stops
