@@ -514,3 +514,27 @@ way down.
 **Edges.** The side's front corner was appearing past the point where the
 front's silhouette curves in. `DEPTH_IN` raised from `R*0.62` to `R*1.15`, so
 the sides start further back and cannot show at the corner.
+
+## The folded state that was not folded
+
+Cameron screenshotted a flat base with both side walls still standing, label
+reading "folded flat". The sides do fold — a render at t=1.0 is flat — so
+what he caught was mid-animation. Two faults made that possible, and the
+second is the one I should have caught.
+
+**The label lied.** It claimed the end state the instant you clicked, then
+sat there for the 1250ms the crate was still visibly folding. It now reads
+"Folding…" during, and settles to the real state only when the animation
+arrives.
+
+**The beats were queued, not overlapped.** At 0 / 0.26 / 0.50 / 0.74 with a
+0.26 span, the base was flat by t=0.52 with two walls still upright — half
+the animation spent in a state that reads as broken rather than as folding.
+Now 0 / 0.18 / 0.36 / 0.54 with a 0.34 span, so the walls overlap and the
+tail is short.
+
+**What I missed.** The frame strip sampled 0.56 and 0.70, both of which show
+exactly that state. I described them as "back down, both sides still
+standing" and read it as correct sequencing. It is correct sequencing, and it
+still looks broken — a frame review that only checks whether the right thing
+is happening will miss whether it looks right while it happens.

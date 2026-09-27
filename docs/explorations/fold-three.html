@@ -148,11 +148,14 @@ const right = wall(D - DEPTH_IN*2, SIDE_H, TEX["side.png"], new THREE.Vector3( S
 // reach +Z (+90); left +Y must reach +X (rot.z -90); right +Y to -X (+90).
 const BEATS = [
   {o:front, axis:"x", to:-Math.PI/2, at:0.00},
-  {o:back,  axis:"x", to: Math.PI/2, at:0.26},
-  {o:left,  axis:"z", to:-Math.PI/2, at:0.50},
-  {o:right, axis:"z", to: Math.PI/2, at:0.74},
+  {o:back,  axis:"x", to: Math.PI/2, at:0.18},
+  {o:left,  axis:"z", to:-Math.PI/2, at:0.36},
+  {o:right, axis:"z", to: Math.PI/2, at:0.54},
 ];
-const SPAN = 0.26;
+// Beats overlap rather than queue. At 0/0.26/0.50/0.74 the base was flat by
+// t=0.52 with two walls still standing, so half the animation was spent in a
+// state that reads as broken rather than as folding.
+const SPAN = 0.34;
 
 // ease-out cubic is heavily front-loaded: 90% done at 54% through. On a
 // four-beat sequence that makes each wall snap and then wait, which reads
@@ -178,7 +181,7 @@ function apply(t){
 }
 
 let t = 0, target = 0, raf = null, last = 0;
-const DUR = 1500;
+const DUR = 1250;
 function run(now){
   if (!last) last = now;
   const dt = Math.min(now - last, 50); last = now;
@@ -186,14 +189,18 @@ function run(now){
   t = clamp01(t + dir * dt / DUR);
   apply(t);
   if ((dir > 0 && t < target) || (dir < 0 && t > target)) raf = requestAnimationFrame(run);
-  else { raf = null; last = 0; window.__t = t; }
+  else {
+    raf = null; last = 0; window.__t = t;
+    // settle the label only once the crate has actually arrived
+    st.innerHTML = "Crate is <b>" + (t > 0.5 ? "folded flat" : "closed") +
+                   "</b> &middot; click to " + (t > 0.5 ? "unfold" : "fold");
+  }
 }
 const btn = document.getElementById("wrap"), st = document.getElementById("state");
 btn.addEventListener("click", () => {
   const open = target < 0.5; target = open ? 1 : 0;
   btn.setAttribute("aria-pressed", String(open));
-  st.innerHTML = "Crate is <b>" + (open ? "folded flat" : "closed") +
-                 "</b> &middot; click to " + (open ? "unfold" : "fold");
+  st.innerHTML = open ? "Folding&hellip;" : "Unfolding&hellip;";
   if (!raf) { last = 0; raf = requestAnimationFrame(run); }
 });
 
