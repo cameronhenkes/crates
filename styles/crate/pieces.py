@@ -18,6 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from generate import G, shade, hex_to_oklab, silhouette
 
 WALL_H = 232
+DEPTH = 300      # how far back the crate goes behind its front wall
 
 
 def shades(body):
@@ -81,6 +82,41 @@ def wall_piece(length, c, face):
     return wrap(length, h, "".join(o))
 
 
+def inner_panel(w, h, c):
+    """A plain inner face -- what you see looking INTO the crate once the
+    front has folded away. Quieter than the front, because it is background."""
+    o = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="10" fill="{c["edge"]}"/>']
+    o.append(f'<rect x="5" y="4" width="{w-10}" height="10" rx="5" fill="{c["hi"]}"/>')
+    n = max(5, int(w / 118))
+    cw = (w - 26) / n - 11
+    for i in range(n):
+        x = 13 + i * (cw + 11)
+        o.append(f'<rect x="{x:.1f}" y="26" width="{cw:.1f}" height="{h-50}" '
+                 f'rx="6" fill="{c["base"]}"/>')
+        o.append(f'<rect x="{x:.1f}" y="22" width="{cw:.1f}" height="{h-50}" '
+                 f'rx="6" fill="none" stroke="{c["hi"]}" stroke-width="2.5" '
+                 f'stroke-opacity=".45"/>')
+    return wrap(w, h, "".join(o))
+
+
+def floor_piece(w, d, c):
+    """The crate floor, seen from inside."""
+    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="8" fill="{c["edge"]}"/>']
+    n = max(6, int(w / 96))
+    for i in range(1, n):
+        x = w * i / n
+        o.append(f'<rect x="{x:.1f}" y="10" width="4" height="{d-20}" '
+                 f'fill="{c["deep"]}" fill-opacity=".3"/>')
+    sw, sh = 15, 44
+    cols = max(5, int(w / 88))
+    for row in (0.32, 0.68):
+        for i in range(cols):
+            x = 24 + (w - 48 - sw) * i / max(1, cols - 1)
+            o.append(f'<rect x="{x:.1f}" y="{d*row - sh/2:.1f}" width="{sw}" '
+                     f'height="{sh}" rx="5" fill="{c["cav"]}" fill-opacity=".8"/>')
+    return wrap(w, d, "".join(o))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("colour")
@@ -89,6 +125,9 @@ def main():
     c = shades(a.colour)
     out = pathlib.Path(a.dir); out.mkdir(parents=True, exist_ok=True)
     (out / "base.svg").write_text(base_piece(c, a.colour))
+    (out / "back.svg").write_text(inner_panel(G["W"], G["H"], c))
+    (out / "side.svg").write_text(inner_panel(DEPTH, G["H"], c))
+    (out / "floor.svg").write_text(floor_piece(G["W"], DEPTH, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):
             (out / f"wall-{name}-{face}.svg").write_text(wall_piece(L, c, face))

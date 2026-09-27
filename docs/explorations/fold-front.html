@@ -1,0 +1,67 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate fold — the icon is the front</title>
+<style>
+:root{--ease:cubic-bezier(0.2,0,0,1);--d:900ms;--W:900px;--H:684px;--D:300px;--s:.34}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:#14161a;color:#e9ecf1;
+ font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px}
+h1{font-size:16px;margin:0;font-weight:600;text-align:center}
+h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top:5px}
+.btn{appearance:none;background:none;border:0;padding:0;cursor:pointer;border-radius:20px;display:block}
+.btn:focus-visible{outline:2px solid currentColor;outline-offset:8px}
+.stage{position:relative;perspective:1700px;perspective-origin:50% 44%;
+ width:calc(var(--W)*var(--s));height:calc((var(--H) + var(--D))*var(--s))}
+.scaler{position:absolute;left:0;top:0;width:var(--W);height:var(--H);
+ transform-origin:0 0;transform:scale(var(--s));transform-style:preserve-3d}
+.rig{position:absolute;inset:0;transform-origin:50% 100%;transform:rotateX(0deg);
+ transform-style:preserve-3d;transition:transform var(--d) var(--ease)}
+.pane{position:absolute;transform-style:preserve-3d;
+ transition:transform calc(var(--d)*.46) var(--ease)}
+.pane img{width:100%;height:100%;display:block}
+
+/* The icon IS the front wall. Nothing else is visible until it opens. */
+.front{inset:0;transform-origin:50% 100%;transform:translateZ(1px)}
+.back {inset:0;transform:translateZ(-300px);transform-origin:50% 100%}
+.left {left:0;top:0;width:var(--D);height:var(--H);transform-origin:0% 50%;
+ transform:rotateY(-90deg)}
+.right{left:calc(var(--W) - var(--D));top:0;width:var(--D);height:var(--H);
+ transform-origin:100% 50%;transform:rotateY(90deg)}
+.floor{left:0;top:var(--H);width:var(--W);height:var(--D);
+ transform-origin:50% 0%;transform:rotateX(90deg)}
+
+/* 1. front falls backward, revealing the crate behind it
+   2. the back wall folds forward toward you
+   3. the sides fold inward, foreshortened front to back */
+[data-folded="true"] .rig  {transform:rotateX(17deg)}
+[data-folded="true"] .front{transform:translateZ(1px) rotateX(90deg)}
+[data-folded="true"] .back {transform:translateZ(-300px) rotateX(-90deg);
+ transition-delay:calc(var(--d)*.30)}
+[data-folded="true"] .left {transform:rotateY(-90deg) rotateX(-90deg);
+ transition-delay:calc(var(--d)*.46)}
+[data-folded="true"] .right{transform:rotateY(90deg) rotateX(-90deg);
+ transition-delay:calc(var(--d)*.46)}
+[data-folded="false"] .front{transition-delay:calc(var(--d)*.42)}
+
+.state{font-size:12px;color:#8b93a1}.state b{color:#e9ecf1}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms!important;transition-delay:0ms!important}}
+</style></head><body>
+<h1>The icon is the front of the crate
+ <small>Click it. The front folds back, revealing the sides and back behind it.</small></h1>
+<button class="btn" id="b" data-folded="false" aria-pressed="false" aria-label="Open the crate">
+ <div class="stage"><div class="scaler"><div class="rig">
+  <div class="pane floor"><img src="pieces/floor.svg" alt=""></div>
+  <div class="pane back"><img src="pieces/back.svg" alt=""></div>
+  <div class="pane left"><img src="pieces/side.svg" alt=""></div>
+  <div class="pane right"><img src="pieces/side.svg" alt=""></div>
+  <div class="pane front"><img src="pieces/base.svg" alt=""></div>
+ </div></div></div>
+</button>
+<p class="state" id="s">Crate is <b>closed</b> &middot; click to fold the front down</p>
+<script>
+const b=document.getElementById("b"),s=document.getElementById("s");
+b.addEventListener("click",()=>{const f=b.dataset.folded!=="true";
+ b.dataset.folded=String(f);b.setAttribute("aria-pressed",String(f));
+ s.innerHTML="Crate is <b>"+(f?"folded flat":"closed")+"</b> &middot; click to "+(f?"close":"fold the front down");});
+</script></body></html>

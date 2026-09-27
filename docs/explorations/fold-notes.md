@@ -196,3 +196,41 @@ walls standing. Either they are z-fighting with the base or the
 `preserve-3d` chain is breaking under the scaled parent. The resting state
 and the flat end state are both correct; the middle of the animation is not.
 Needs a debugging pass before this is worth wiring into the component.
+
+## The icon is the FRONT of the crate (Cameron's reframe)
+
+> "so this is the front of the crate. When I click it, this front folds down
+> backwards revealing that there is also sides and a back too."
+
+This is the right model and it dissolves the problem the previous five
+attempts were fighting. The icon is not a view from above that has to somehow
+imply depth — it is the crate's **front wall, seen face-on**. The resting
+state is then the canonical icon *by construction*, not by patching. Click,
+the front falls back on its bottom hinge, and the sides and back are revealed
+behind it — which is exactly the sequence described earlier: front folds away,
+back folds forward, sides fold in with front-to-back foreshortening.
+
+`fold-front.html` builds this. `pieces.py` gained `floor.svg`, `back.svg` and
+`side.svg` — the inner faces you see once the front is out of the way, drawn
+quieter than the front because they are background.
+
+### Iteration log
+
+1. Nothing rendered. `transform-origin:50% 100%` with `scale()` parks the
+   crate below its stage — scale does not change layout size.
+2. Split scale and rotation onto separate elements. Geometry appeared.
+3. Sides flared outward: `rotateY(90deg)` on the left wall swings it toward
+   the camera, not away. Signs inverted; floor had the same fault.
+4. Back wall now converges correctly behind the front. Sides now flare the
+   other way — forward, in front of the icon.
+
+### Open blocker
+The front pane renders *behind* the back pane despite sitting at `+1px` and
+the back at `-300px`. Forcing `translateZ` did not change it, so the depth
+axis itself is suspect: the `scale()` on the `preserve-3d` ancestor very
+likely collapses or rescales z along with x and y, which would flatten the
+whole depth ordering.
+
+Next attempt should take the scale off the 3D chain entirely — size the
+panes in already-scaled pixels and drop `scale()` — so the only transforms in
+the preserve-3d context are rotations and translations.
