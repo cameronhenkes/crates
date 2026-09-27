@@ -11,8 +11,9 @@ set -euo pipefail
 DIR="${1:-.}"
 HERE="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$DIR/tex"
-declare -A MAP=( [base]=front [back]=back [side]=side [floor]=floor )
-for src in base back side floor; do
+declare -A MAP=( [base]=front [back]=back [side]=side [floor]=floor
+                 [rim-long]=rimlong [rim-short]=rimshort )
+for src in base back side floor rim-long rim-short; do
   svg="$DIR/pieces/$src.svg"
   [ -f "$svg" ] || { echo "missing $svg" >&2; exit 1; }
   read -r w h < <(python3 -c "

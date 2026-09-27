@@ -560,3 +560,35 @@ Verified across ten instants (`fold-dense-frames.png`) and at the three that
 were worst, 0.36 / 0.48 / 0.60 (`fold-hinge-check.png`). The sides still read
 as thin slivers around 0.48 because they are near edge-on there, but they are
 attached.
+
+## How the crate is actually built
+
+Cameron: no bottom visible once the front folds, and nothing the sides are
+hinged to. Researched properly (collapsible-crate patents, WO2005082728A1,
+US7195127, US8627973B2, US7478726B2) rather than guessed.
+
+The mechanism: the base is **not a bare plane**. It carries an upstanding
+**perimeter rim**, and hinge **sockets are formed in that rim**. Each wall's
+bottom edge carries **pins or knuckles** that seat into them. The pins have
+radial projections that lock while the wall is upright and release when it is
+folded flat — which is exactly why Aykasa panels are removable. The rim also
+holds all four wall tops at the same level.
+
+Three changes follow:
+
+**The rim is modelled.** Four runs around the base with the sockets drawn in,
+and every wall now hinges on top of it rather than on the floor plane. A wall
+has something to be attached *to*.
+
+**Walls carry hinge knuckles.** Drawn along each wall's bottom edge, sized
+and spaced to match the sockets.
+
+**The crate is deeper: D 720 -> 950.** The front is 684 tall, so against a
+720-deep base a folded front covered the entire floor and the crate read as
+bottomless. At 950 the base stays visible behind it.
+
+### The trade
+The rim is visible below the front wall at rest, so the resting frame is the
+icon sitting on a base band rather than the icon alone. That is what a real
+crate looks like -- the front wall sits on the base rim -- but it is a
+departure from the pure icon. Cameron's call.

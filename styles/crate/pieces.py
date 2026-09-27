@@ -18,7 +18,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from generate import G, shade, hex_to_oklab, silhouette
 
 WALL_H = 232
-DEPTH = 720      # must be >= wall height or the walls cannot fold flat
+DEPTH = 950      # deeper than the walls are tall, or a folded wall
+                 # covers the whole floor and the crate reads bottomless
+RIM = 54         # the base's upstanding perimeter, which the walls hinge into
 
 
 def shades(body):
@@ -198,9 +200,40 @@ def panel_art(w, h, c, cols, rows, rim="top"):
                  f'height="{foot*0.6:.1f}" rx="8" fill="{c["lit"]}" fill-opacity=".5" '
                  f'stroke="{c["deep"]}" stroke-width="2" stroke-opacity=".3"/>')
 
+    # Hinge knuckles along the bottom edge. The wall does not hinge on a flat
+    # plane -- it seats into sockets in the base's perimeter rim, and these
+    # are the pins that do it. Without them a wall reads as a loose panel
+    # standing near the base rather than attached to it.
+    kn = max(3, int(w / 150))
+    kw = w * 0.055
+    for i in range(kn):
+        kx = w * (i + 0.5) / kn - kw / 2
+        o.append(f'<rect x="{kx:.1f}" y="{h-14:.1f}" width="{kw:.1f}" '
+                 f'height="18" rx="7" fill="{c["lit"]}" stroke="{c["deep"]}" '
+                 f'stroke-width="2" stroke-opacity=".5"/>')
+        o.append(f'<rect x="{kx+kw*0.3:.1f}" y="{h-10:.1f}" width="{kw*0.4:.1f}" '
+                 f'height="7" rx="3.5" fill="{c["cav"]}" fill-opacity=".5"/>')
+
     o.append(f'<rect x="0" y="0" width="{w}" height="{h}" rx="{r:.0f}" fill="none" '
              f'stroke="{c["edge"]}" stroke-width="2" stroke-opacity=".7"/>')
     return wrap(w, h, "".join(o))
+
+
+def rim_piece(length, height, c):
+    """A run of the base's perimeter rim, with the hinge sockets in it."""
+    o = [f'<rect x="0" y="0" width="{length}" height="{height}" fill="{c["base"]}"/>']
+    o.append(f'<rect x="0" y="0" width="{length}" height="4" fill="{c["hi"]}"/>')
+    o.append(f'<rect x="0" y="{height-5}" width="{length}" height="5" '
+             f'fill="{c["deep"]}" fill-opacity=".45"/>')
+    n = max(3, int(length / 150))
+    sw = length * 0.055 + 8
+    for i in range(n):
+        sx = length * (i + 0.5) / n - sw / 2
+        o.append(f'<rect x="{sx:.1f}" y="3" width="{sw:.1f}" '
+                 f'height="{height-8:.1f}" rx="6" fill="{c["cav"]}" fill-opacity=".5"/>')
+        o.append(f'<rect x="{sx:.1f}" y="3" width="3" height="{height-8:.1f}" '
+                 f'rx="1.5" fill="{c["deep"]}" fill-opacity=".5"/>')
+    return wrap(length, height, "".join(o))
 
 
 def floor_piece(w, d, c):
@@ -283,6 +316,8 @@ def main():
     SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"]
     (out / "side.svg").write_text(panel_art(DEPTH, SIDE_H, c, 7, 4))
     (out / "floor.svg").write_text(floor_piece(G["W"], DEPTH, c))
+    (out / "rim-long.svg").write_text(rim_piece(G["W"], RIM, c))
+    (out / "rim-short.svg").write_text(rim_piece(DEPTH, RIM, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):
             (out / f"wall-{name}-{face}.svg").write_text(wall_piece(L, c, face))
