@@ -251,7 +251,7 @@ def floor_piece(w, d, c):
     sw, sh, sr = G["SLOT_W"], G["SLOT_H"], G["SLOT_R"]
     bev = 3.2
     rail = 52
-    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="{G["R_BR"]}" '
+    o = [f'<rect x="0" y="0" width="{w}" height="{d}" rx="36" '
          f'fill="{c["base"]}"/>']
     px0, px1, py0, py1 = rail, w - rail, rail, d - rail
     o.append(f'<rect x="{px0}" y="{py0}" width="{px1-px0}" height="{py1-py0}" '
@@ -316,15 +316,13 @@ def main():
     # curves in at a corner the side is left exposed as a nub. Dropping their
     # top below where that curve starts hides it, and side walls slightly
     # lower than the end walls is normal on a real crate anyway.
-    SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"]
+    SIDE_H = G["H"] - G["BODY_TOP"] - G["R_TR"] - 39
     # the side spans the base between the front and back walls
-    (out / "side.svg").write_text(panel_art(DEPTH - 26, SIDE_H, c, 7, 4))
+    (out / "side.svg").write_text(panel_art(DEPTH - 38, SIDE_H, c, 7, 4))
     # the floor and the long rim span the FOOTPRINT, not the front's
     # width -- the sides sit outboard, so it is W + WALL_T
-    foot = G["W"] + WALL_T * 2
+    foot = G["W"] + 39
     (out / "floor.svg").write_text(floor_piece(foot, DEPTH, c))
-    (out / "rim-long.svg").write_text(rim_piece(foot, RIM, c))
-    (out / "rim-short.svg").write_text(rim_piece(DEPTH, RIM, c))
     for name, L in (("long", G["W"]), ("short", G["H"])):
         for face in ("out", "in"):
             (out / f"wall-{name}-{face}.svg").write_text(wall_piece(L, c, face))

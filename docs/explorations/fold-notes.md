@@ -699,3 +699,38 @@ rotation is already 0..RIM in Y, so adding `position.y = RIM` put it at
 The rim ring is now `(W + 2*TH) x D` outside and `W x (D - 2*TH)` inside, so
 the walls sit in the middle of its thickness and the front fits exactly
 within its inner edge.
+
+## Corners, fixed as one problem instead of six
+
+Cameron flagged the front/side corners (early fold) and the side showing
+past the front's top-right corner (rest). Same root as every corner complaint
+before them: the front is the icon, with rounded corners, and everything else
+is flat panels arranged around it. Wherever the icon's outline curves away,
+whatever sits behind shows through or pokes past. I had been patching those
+one at a time.
+
+**At rest, only the front exists.** A closed crate seen face-on shows its
+front and nothing else. The back and sides now fade in with the base over
+`t` 0.02 to 0.12. `alphaTest` scales with the fade, otherwise the cutout
+discards every fragment until opacity passes 0.5 and the walls pop instead
+of fading.
+
+**The box has consistent corners.**
+
+| | was | now | why |
+|---|---|---|---|
+| rim height | 54 | 72 | covers the front's rounded bottom corners (R=62 plus hinge offset); above it the front's edge is straight |
+| rim plan radius | 62 | 36 | walls meet at a square corner and were poking out through a large-radius rim |
+| rim band thickness | 13 | 24 | wider than a wall, so no two faces are coplanar |
+| side height | 534 | 495 | tops sit below where the front's top-right corner starts to curve |
+| side hinge | W/2 + 6.5 | W/2 + 7.5 | inner face 1 unit clear of the front's edge |
+
+Stack of four walls is 52, housed in a 72 rim.
+
+Verified: rest top-right, 0.16 bottom-left and bottom-right, and all eight
+frames of the sequence.
+
+### What this costs
+During the fold the rim is a band slightly wider than the front with
+near-square corners. That is the crate's base and is only on screen while the
+front is visibly falling, never at rest.
