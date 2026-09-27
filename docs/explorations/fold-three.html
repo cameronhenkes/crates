@@ -155,10 +155,17 @@ function roundedRect(w, h, r){
   sh.lineTo(x, y + r);      sh.quadraticCurveTo(x, y, x + r, y);
   return sh;
 }
+// The base is wider than the front -- correctly, because the side walls sit
+// outboard so the front can fold between them, and a real crate's base spans
+// their outer faces. But you should not see the floor of a CLOSED crate, and
+// at rest it showed as a sliver past the front's corners reading as a stray
+// extra piece. The base fades in as the crate opens instead.
+const BASE = [];
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(SIDE_X * 2, D), mat(TEX["floor.png"], false));
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
+BASE.push(floor);
 
 // Walls have thickness, so a folded crate is a stack. Each wall is lifted
 // by the thickness of the ones that fold before it: correct stacking order,
@@ -183,10 +190,11 @@ const right = wall(SIDE_W, SIDE_H, TEX["side.png"], new THREE.Vector3( SIDE_X,RI
   outer.holes.push(new THREE.Path(inner.getPoints(72)));
   const rim = new THREE.Mesh(
     new THREE.ExtrudeGeometry(outer, {depth: RIM, bevelEnabled: false}),
-    new THREE.MeshLambertMaterial({color: 0xB2543F}));
+    new THREE.MeshLambertMaterial({color: 0xB2543F, transparent: true}));
   rim.rotation.x = -Math.PI/2;
   rim.position.y = RIM;
   scene.add(rim);
+  BASE.push(rim);
 }
 
 const BEATS = [
@@ -217,6 +225,10 @@ function apply(t){
   // its final angle by 55% meant the viewpoint had stopped moving while
   // three of the four walls were still folding, so the back half of the
   // animation happened in a static frame.
+  // base visible only once the front has started to fall
+  const vis = clamp01((t - 0.02) / 0.10);
+  for (const m of BASE) { m.material.opacity = vis; m.visible = vis > 0.01; }
+
   const c = ease(t);
   const dist = 3400 + 500*c;
   // Dead-on at rest. At 5 degrees the floor and rim behind the front showed

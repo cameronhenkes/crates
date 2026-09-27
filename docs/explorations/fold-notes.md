@@ -640,3 +640,29 @@ all is the trade noted earlier: a real crate's front wall sits *on* its base
 rim, so the band is true to the object but is a departure from the icon alone.
 Reducing `RIM` until the icon's own bottom rail covers it would hide it, at
 the cost of the hinge being less legible.
+
+## The extra bottom piece
+
+Cameron: "we have an extra bottom piece and the corners are still not being
+aligned."
+
+That piece is the floor, and its width is correct. The side walls sit
+outboard so the front can fold *between* them — which is how a real crate
+works, the long side walls being outermost and the short end walls fitting
+between — so the base spans their outer faces and is `TH*2` wider than the
+front. A crate's base really is wider than its end wall.
+
+But correctness was not the point. At rest you are looking at a **closed**
+crate, and you should not be able to see its floor at all. The only reason it
+showed was the camera sitting above floor level, which turns that 13-unit
+overhang into a visible sliver past the front's rounded corners — reading as
+a stray part rather than as the base.
+
+So the base fades in as the crate opens: floor and rim are hidden at rest and
+ramp up over `t` 0.02 to 0.12, once the front has begun to fall. At rest the
+frame is the icon alone, which is what it was always supposed to be, and by
+the time the crate is open the base is fully there.
+
+This is the one place the build cheats rather than models. It is worth it: no
+camera position both shows a closed crate face-on and hides a base that is
+genuinely wider than the wall in front of it.
