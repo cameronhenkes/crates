@@ -97,21 +97,25 @@
       "blocks": [
         {
           "type": "text",
-          "text": "The one thing a still image cannot tell you about this object is that it folds. So clicking it folds it flat."
+          "text": "The one thing a still image cannot tell you about this object is that it folds. So the icon is the front of a crate, and clicking it folds the crate flat the way the real one folds: front, back, left side, right side."
         },
         {
           "type": "text",
-          "text": "Hover is deliberately almost nothing — a seven pixel lift and a tighter shadow over 140ms. It is seen constantly, so it says 'this responds' and gets out of the way. The click is where the budget goes, because it is rare and it explains something."
+          "text": "Hover is deliberately almost nothing, a four pixel lift over 140ms. It is seen constantly, so it says 'this responds' and gets out of the way. The click is where the budget goes, because it is rare and it explains something."
         },
         {
           "type": "image",
           "src": "/images/projects/crates/motion-fold.png",
-          "alt": "Five frames showing the crate collapsing from assembled to flat over 340 milliseconds",
-          "caption": "340ms, cubic-bezier(0.2, 0, 0, 1), no bounce."
+          "alt": "Sixteen frames of the crate folding, from the closed icon to a flat stack inside its base",
+          "caption": "1.9 seconds. Each end wall is squeezed, pops free, then is lowered. The sides follow in one easy motion."
         },
         {
           "type": "text",
-          "text": "An earlier version also folded the side walls inward. I cut it. The walls sit inside a clipping path, so collapsing them only revealed the body colour underneath — and a real folding crate keeps its footprint and loses its height. The vertical collapse was not part of the fold. It was the fold."
+          "text": "The first version squashed the icon vertically. It looked like folding and explained nothing, because that is not how the object works. The version that shipped came from studying the real mechanism and then holding the animation to it: walls with thickness, hinges with somewhere to sit, latches that release before anything moves, and no part allowed to pass through another."
+        },
+        {
+          "type": "text",
+          "text": "The hardest constraint was that the resting frame had to stay the icon. A real crate is wider than its front wall, so for a long time the base was hidden and faded in. That fade was the last thing to go. The fix was to read the icon differently: its bottom band is the base, and the strip at each edge is a side wall seen end on. Once the icon was the elevation of the object rather than a picture stuck to the front of it, nothing needed hiding."
         }
       ]
     },

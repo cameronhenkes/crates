@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate fold: module demo</title>
+<style>
+ html,body{margin:0;height:100%;background:#14161a;color:#e9ecf1;font:14px/1.5 -apple-system,sans-serif}
+ body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+ button{appearance:none;background:none;border:0;padding:0;cursor:pointer;width:460px}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script></head><body>
+<!-- Serve this folder over http (python3 -m http.server) -- modules and
+     textures are both refused from file://. -->
+<button id="b" aria-pressed="false"></button>
+<p id="s">closed</p>
+<script type="module">
+import * as THREE from "three";
+import { createCrateFold } from "./crate-fold.js";
+const b = document.getElementById("b"), s = document.getElementById("s");
+const fold = createCrateFold({ THREE, mount: b,
+  textures: { "front.png": "tex/front.png", "back.png": "tex/back.png",
+              "side.png": "tex/side.png", "floor.png": "tex/floor.png" },
+  onState: v => s.textContent = v,
+  onReady: () => { const q = new URLSearchParams(location.search);
+                   if (q.has("t")) fold.set(parseFloat(q.get("t"))); } });
+b.addEventListener("click", () => b.setAttribute("aria-pressed", String(fold.toggle())));
+</script></body></html>
