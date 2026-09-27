@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate fold — 3D</title>
+<style>
+:root{--ease:cubic-bezier(0.2,0,0,1);--d:760ms;--tilt:58deg;
+  --W:900px;--H:684px;--WH:232px;--s:.30}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:#14161a;color:#e9ecf1;
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px}
+h1{font-size:16px;margin:0;font-weight:600;text-align:center}
+h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top:5px}
+.btn{appearance:none;background:none;border:0;padding:0;cursor:pointer;
+  display:block;border-radius:20px}
+.btn:focus-visible{outline:2px solid currentColor;outline-offset:8px}
+.stage{position:relative;perspective:2000px;perspective-origin:50% 50%;
+  /* scale() does not change layout size, so the stage has to be sized to the
+     SCALED crate or a 900px box overflows everything around it. */
+  width:calc(var(--W)*var(--s));
+  height:calc(var(--H)*var(--s) + var(--WH)*var(--s)*1.6)}
+.crate{position:absolute;left:0;top:calc(var(--WH)*var(--s)*1.1);
+  width:var(--W);height:var(--H);transform-origin:0 0;
+  transform:scale(var(--s)) rotateX(var(--tilt));transform-style:preserve-3d;
+  transition:transform var(--d) var(--ease)}
+.base{position:absolute;inset:0;transform-style:preserve-3d}
+.base img{width:100%;height:100%;display:block}
+
+/* Every wall is a plane hinged on a base edge. Its front layer is the INNER
+   face: flat-outward it points up, upright it points into the crate, folded
+   inward it points down at the floor -- which is exactly what a real wall
+   does, so the correct face is showing at every angle without being told. */
+.wall{position:absolute;width:var(--W);height:var(--WH);
+  transform-origin:0 0;transform-style:preserve-3d;
+  transition:transform calc(var(--d)*.55) var(--ease)}
+.wall.short{width:var(--H)}
+.wall .face{position:absolute;inset:0;width:100%;height:100%;
+  backface-visibility:hidden;display:block}
+.wall .face.out{transform:rotateY(180deg)}
+
+.w-front{left:0;top:var(--H);transform:rotateX(-90deg)}
+.w-back {left:var(--W);top:0;transform:rotateZ(180deg) rotateX(-90deg)}
+.w-left {left:0;top:0;transform:rotateZ(90deg) rotateX(-90deg)}
+.w-right{left:var(--W);top:var(--H);transform:rotateZ(-90deg) rotateX(-90deg)}
+
+/* Short ends fold first, long sides follow -- push the short edge, then the
+   long edge, which is what the manufacturer tells you to do. */
+[data-folded="true"] .w-left {transform:rotateZ(90deg) rotateX(-180deg)}
+[data-folded="true"] .w-right{transform:rotateZ(-90deg) rotateX(-180deg)}
+[data-folded="true"] .w-front{transform:rotateX(-180deg);transition-delay:calc(var(--d)*.34)}
+[data-folded="true"] .w-back {transform:rotateZ(180deg) rotateX(-180deg);transition-delay:calc(var(--d)*.34)}
+[data-folded="false"] .w-left,[data-folded="false"] .w-right{transition-delay:calc(var(--d)*.34)}
+
+.state{font-size:12px;color:#8b93a1}
+.state b{color:#e9ecf1}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms!important;transition-delay:0ms!important}}
+</style></head><body>
+<h1>Crate fold, in three dimensions
+  <small>Short ends fold in first, then the long sides drop over them. Click it.</small></h1>
+<button class="btn" id="b" data-folded="false" aria-pressed="false" aria-label="Fold the crate">
+ <div class="stage"><div class="crate">
+  <div class="base"><img src="pieces/base.svg" alt=""></div>
+  <div class="wall w-left short"><img class="face in" src="pieces/wall-short-in.svg" alt=""><img class="face out" src="pieces/wall-short-out.svg" alt=""></div>
+  <div class="wall w-right short"><img class="face in" src="pieces/wall-short-in.svg" alt=""><img class="face out" src="pieces/wall-short-out.svg" alt=""></div>
+  <div class="wall w-back"><img class="face in" src="pieces/wall-long-in.svg" alt=""><img class="face out" src="pieces/wall-long-out.svg" alt=""></div>
+  <div class="wall w-front"><img class="face in" src="pieces/wall-long-in.svg" alt=""><img class="face out" src="pieces/wall-long-out.svg" alt=""></div>
+ </div></div>
+</button>
+<p class="state" id="s">Crate is <b>assembled</b> &middot; click to fold</p>
+<script>
+const b=document.getElementById("b"),s=document.getElementById("s");
+b.addEventListener("click",()=>{const f=b.dataset.folded!=="true";
+ b.dataset.folded=String(f);b.setAttribute("aria-pressed",String(f));
+ s.innerHTML="Crate is <b>"+(f?"folded flat":"assembled")+"</b> &middot; click to "+(f?"unfold":"fold");});
+</script></body></html>

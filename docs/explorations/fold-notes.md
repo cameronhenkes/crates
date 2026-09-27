@@ -126,3 +126,47 @@ thing that changes most in reality (height) is the thing plan view discards.
 
 That is the case for B. Leaving plan view for ~500ms is not decoration; it is
 the only way to show a change that happens in the third axis.
+
+## Built in 3D, to Cameron's model
+
+> "the front should fold down toward the back. Then in the background there is
+> the other short side which then folds down forward. Then the side, which is
+> a perspective and scales from the front to the back"
+
+That is the correct model, and it cannot be faked in 2D. Opposing walls fold
+in **opposite screen directions**, and the side walls foreshorten along their
+length. Both fall out of real perspective for free, and neither can be
+approximated with scale.
+
+So `pieces.py` now emits the crate as separate planes — `base.svg` plus outer
+and inner faces for the long and short walls — and `fold3d.html` assembles
+them in a `preserve-3d` scene. Each wall is hinged on its base edge:
+
+| wall | placement | upright | folded inward |
+|---|---|---|---|
+| front (near) | `top:H`, origin `0 0` | `rotateX(-90deg)` | `rotateX(-180deg)` |
+| back (far) | `left:W; top:0` | `rotateZ(180) rotateX(-90)` | `rotateZ(180) rotateX(-180)` |
+| left | `left:0; top:0` | `rotateZ(90) rotateX(-90)` | `rotateZ(90) rotateX(-180)` |
+| right | `left:W; top:H` | `rotateZ(-90) rotateX(-90)` | `rotateZ(-90) rotateX(-180)` |
+
+Every wall runs the same `rotateX(-90deg -> -180deg)`; the `rotateZ` only
+orients the hinge. The near wall folding away and the far wall folding toward
+you is not authored — it is what that single rotation looks like from a tilted
+camera.
+
+**Faces.** Each wall carries two layers with `backface-visibility:hidden`,
+the front layer being the INNER face. Flat-outward it points up, upright it
+points into the crate, folded inward it points down at the floor. The right
+face is showing at every angle without being told which.
+
+**Order.** Short ends (left/right, 684) lead; long sides (front/back, 900)
+follow at 34%. Short edge first, then long, as the manufacturer says.
+
+Note Cameron's description had front/back as the short pair. In this icon the
+crate is wider than deep, so front/back are the LONG walls and left/right the
+short ones — the order above follows the object, not the screen. Worth
+confirming, since swapping it is one line.
+
+### Still to tune
+Wall thickness is not modelled, so the flat state is a single plane rather
+than a four-layer stack. Duration (760ms) is long for a click.
