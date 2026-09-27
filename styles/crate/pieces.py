@@ -195,7 +195,17 @@ def main():
     c = shades(a.colour)
     out = pathlib.Path(a.dir); out.mkdir(parents=True, exist_ok=True)
     (out / "base.svg").write_text(base_piece(c, a.colour))
-    (out / "back.svg").write_text(panel_art(G["W"], G["H"], c, 9, 4))
+    # The back is the same moulding as the front, but cropped to the body:
+    # a tab is a FOLDER affordance and belongs on the front only. Leaving it
+    # on the back put a second tab in the resting silhouette, mirrored to the
+    # wrong side, which no amount of texture flipping fixed cleanly.
+    from generate import build as _build
+    _front = _build(a.colour, None, "Crate", "full")
+    (out / "back.svg").write_text(_front.replace(
+        f'viewBox="0 0 {G["CANVAS"]} {G["CANVAS"]}" '
+        f'width="{G["CANVAS"]}" height="{G["CANVAS"]}"',
+        f'viewBox="{G["OX"]} {G["OY"] + G["BODY_TOP"]} {G["W"]} {G["H"] - G["BODY_TOP"]}" '
+        f'width="{G["W"]}" height="{G["H"] - G["BODY_TOP"]}"'))
     # the side walls span the crate BODY, not the folder tab above it
     (out / "side.svg").write_text(
         panel_art(DEPTH, G["H"] - G["BODY_TOP"], c, 7, 4))

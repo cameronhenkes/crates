@@ -351,3 +351,38 @@ in to match so it cannot poke past the outline either.
 **Front and back are one moulding.** The back now uses the icon artwork, as
 Cameron asked — `DoubleSide` shows it mirrored from inside, which is what you
 would actually see.
+
+## Review round: thickness, and what it broke
+
+Frame review of the current build found five things.
+
+**Walls were zero-thickness planes.** At every mid-fold angle they read as
+paper, not moulded plastic — Cameron's "thickness is not consistent with the
+HAY crate". Fixed, but see below for how.
+
+**Interior faces were as bright as the front**, so when the front tipped away
+you saw two identical grids stacked and it read as confusion rather than
+depth. The back and sides are now shaded (`color: 0x9a9a9a`), which is also
+just true: they sit inside a crate.
+
+**The stack spacing was arbitrary.** It is now the wall thickness itself, so
+a folded crate is as thick as four walls, which is what the real one is.
+
+**The back carried a tab.** Front and back are the same moulding, but a tab
+is a FOLDER affordance and belongs on the front. Seen from inside the
+artwork mirrors, so the back's tab landed on the wrong side and put a second
+tab in the resting silhouette. Mirroring the texture did not fix it cleanly
+(a box's -z face has mirrored UVs, so the correction cancels). The back is
+now the front artwork cropped to the body — same moulding, no tab.
+
+**BoxGeometry broke the silhouette.** Giving walls thickness as boxes was
+wrong: a box's edge faces are solid rectangles that ignore the texture's
+alpha cutout, so the folder shape ended up wrapped in a rectangular bar and
+the resting frame showed a phantom second tab. Thickness now comes from two
+textured faces `TH` apart — the cutout survives, and it still reads as
+thickness at every angle except dead-on.
+
+### Corners
+Checked at rest, 0.20, 0.45 and 0.75. Bottom corners are clean at all four —
+the inset holds now that the front and back wrap the sides. Side walls show
+their moulded edge at 0.20 and 0.45 rather than reading as paper.
