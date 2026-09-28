@@ -77,9 +77,10 @@
    <p class="note">Hover a name or move through the crate. Move away and they all sit back down. Scroll and arrow keys work too; Escape puts them back.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
-   <p class="note">A folder in one of the icon's hues, never the crate's own. No picture, no words. The list names it.</p>
+   <p class="note">A folder in one of the icon's hues, the crate's own colour, darker. No picture, no words. The list names it.</p>
    <div class="row" id="styles"><button data-style="moulded">Moulded like the crate</button><button data-style="blank">Plain</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
+   <label>Darker than the crate by <output id="darkOut">30%</output><input id="dark" type="range" min="0" max="70" step="1" value="30"></label>
    <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
    <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
    <h2>Moving the cursor through the crate</h2>
@@ -139,12 +140,12 @@ const PALETTE = ["#C3D2E1", "#9EB29A", "#C6BFD8", "#EEDFA6", "#E8B69B", "#9E9B63
                  "#C7C7C1", "#D79A4D", "#EBE9E3", "#55565A", "#3A3A3C", "#C0614B"];
 const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
 const apart = (a, b) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
-// The icon's own flat hues, the same on a dark page and a light one. Retoning them for the page
-// was tried both ways round on 28 Sep 2026 and undone.
-let tone = "dark";
-const ALLOWED = PALETTE.filter(c => apart(c, CRATE) > 70);
+// Every item is the crate's own colour, darker. They are told apart by where their tabs sit
+// and by the list, not by colour: the crate and what is in it read as one object.
+let tone = "dark", darker = 0.30;
+const deepen = (c, by) => "#" + rgb(c).map(v => Math.round(v * (1 - by)).toString(16).padStart(2, "0")).join("");
 const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
-                     hue: ALLOWED[i % ALLOWED.length] });
+                     hue: deepen(CRATE, darker) });
 const NAMES = ITEMS.map(v => v.name);
 
 const PICS = [];
@@ -362,7 +363,7 @@ const DO = {
   theme: () => setTheme(tone === "dark" ? "light" : "dark"),
   copy(){
     const v = { fold: { pace: val("pace") }, present: { pace: val("openPace") },
-                page: tone, items: ALLOWED.slice(0, val("n")),
+                page: tone, itemColour: deepen(CRATE, darker), darkerBy: darker,
                 records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, item: style, cut, ...fold.tune?.() },
                 flight: { ms: val("flyMs"), dropMs: val("dropMs") } };
     navigator.clipboard.writeText(JSON.stringify(v, null, 2));
@@ -402,6 +403,11 @@ for (const [id, out, f] of [["gap", "gapOut", v => v], ["lift", "liftOut", v => 
                             ["back", "backOut", v => v + "°"], ["fwd", "fwdOut", v => v + "°"]])
   $(id).addEventListener("input", () => { $(out).textContent = f(val(id)); tuned(); });
 $("flipMs").addEventListener("input", tuned);
+$("dark").addEventListener("input", () => {
+  darker = val("dark") / 100; $("darkOut").textContent = val("dark") + "%";
+  const keep = fold.selected();
+  fold.setRecords(covers(val("n"))); fold.seek({ to: keep }); names(val("n")); tuned();
+});
 $("k").addEventListener("input", () => {
   const to = fold.selected(), k = val("k");
   $("kOut").textContent = Math.round(k * 100) + "%";

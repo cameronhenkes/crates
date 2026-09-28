@@ -1055,3 +1055,14 @@ light one. Retoning for the page was tried both ways round and neither held.
 Kept: items never take the crate's colour or one near it; items are lit by the
 crate's lamps; moulded is the default style. `tune({gain})` stays in the
 module at 1, unused by the playground.
+
+## Items are the crate's colour, darker (28 Sep 2026)
+
+Cameron: "change the colour to be the same colour as the crate but darker."
+
+This replaces the earlier rule that an item is never the crate's colour. Every
+item is now the crate's rust, darkened by 30% (a slider in the playground).
+The crate and its contents read as one object in one material. Items are told
+apart by where their tabs sit and by the list beside the crate, not by colour.
+
+The rule is relative to the crate: a sage crate holds darker sage items.
