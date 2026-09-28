@@ -935,3 +935,19 @@ item and two ways to cut it:
 Colours are the twelve from the icon palette. Project images are read from
 `docs/interactive/fold/local/`, which is ignored by git: this repository is
 public and the images are client work.
+
+## The items are objects, not covers (28 Sep 2026)
+
+Cameron, in order: "The tabs are going in the right direction, the visual
+styling is not. It's not consistent with the visual design of the tabs." Then
+"we shouldn't have a cover image on them as well", "the tab shouldn't have a
+label either", and "no text on the cover items".
+
+Why: the tab was a flat colour and a shape. Everything I had put on the body
+(frames, a picture, a fade, tags) was a different visual language stuck to it.
+Each thing he removed was a thing the icon does not have either.
+
+So an item is a folder in one of the icon's colours: one fill, one lit rim
+round the whole silhouette with no seam at the tab, and nothing printed on it.
+The list beside the crate names the projects. Two variants remain: plain, and
+moulded with the crate's recessed panel and slots.

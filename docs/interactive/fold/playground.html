@@ -77,7 +77,8 @@
    <p class="note">Hover a name, hover a record, scroll over the crate, or use the arrow keys.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
-   <div class="row" id="styles"><button data-style="window">Window</button><button data-style="sleeve">Sleeve</button><button data-style="label">Label</button><button data-style="moulded">Moulded</button></div>
+   <p class="note">A folder in one of the icon's colours. No picture, no words. The list names it.</p>
+   <div class="row" id="styles"><button data-style="blank">Plain</button><button data-style="moulded">Moulded like the crate</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
    <canvas id="flat" width="1176" height="800" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
    <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
@@ -166,84 +167,73 @@ function fit(x, text, max, size, weight = 700){
 const FONT = (w, s) => `${w} ${s}px -apple-system, "Helvetica Neue", sans-serif`;
 function slots(x, X, Y, n, hue, by){ for (let k = 0; k < n; k++) { x.fillStyle = shade(hue, by); rbox(x, X + k * 38, Y, 17, 70, 6); x.fill(); } }
 
-// Four ways to make an item. Each draws the body into (0, top, W, H - top); `top` is the height
-// of the tab when the item is cut as a folder, and 0 when it is a card.
+// ONE folder, drawn one way. The tab set the rules: a flat colour from the icon's palette, a
+// single weight of type, nothing framed or boxed in. So the body is the same sheet as the tab --
+// one fill and one lit rim that run round the whole silhouette, tab included, with no seam where
+// they meet. The three variants differ only in what is placed ON that sheet.
+function silhouette(x, W, H, top, at, r){
+  x.beginPath();
+  if (at === undefined) { x.roundRect(0, 0, W, H, r); return; }
+  const tw = W * fold.tabWidth, run = W * fold.tabRun, rt = Math.min(r, top * 0.9);
+  const x0 = at <= 0 ? 0 : run + at * (W - tw - run * 2), x1 = x0 + tw;
+  x.moveTo(r, H); x.lineTo(W - r, H); x.arcTo(W, H, W, H - r, r);
+  if (x1 + run >= W - r) { x.lineTo(W, rt); x.arcTo(W, 0, W - rt, 0, rt); }
+  else { x.lineTo(W, top + r); x.arcTo(W, top, W - r, top, r); x.lineTo(x1 + run, top);
+         x.bezierCurveTo(x1 + run * 0.45, top, x1 + run * 0.55, 0, x1, 0); }
+  if (x0 <= 0) { x.lineTo(rt, 0); x.arcTo(0, 0, 0, rt, rt); }
+  else { x.lineTo(x0, 0); x.bezierCurveTo(x0 - run * 0.55, 0, x0 - run * 0.45, top, x0 - run, top);
+         x.lineTo(r, top); x.arcTo(0, top, 0, top + r, r); }
+  x.lineTo(0, H - r); x.arcTo(0, H, r, H, r); x.closePath();
+}
+const TYPE = (s, w = 600) => `${w} ${s}px -apple-system, "Helvetica Neue", sans-serif`;
+function sheet(x, it, W, H, top, at){
+  const c = it.hue, r = 46;
+  silhouette(x, W, H, top, at, r); x.save(); x.clip();
+  // the icon's own body: lit from the top left, a little deeper at the foot
+  const g = x.createLinearGradient(W * 0.1, 0, W * 0.4, H);
+  g.addColorStop(0, shade(c, 12)); g.addColorStop(0.6, c); g.addColorStop(1, shade(c, -10));
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // the rim, an inside stroke, all the way round
+  silhouette(x, W, H, top, at, r); x.lineWidth = 22; x.strokeStyle = shade(c, 30); x.stroke();
+  x.lineWidth = 3; x.strokeStyle = shade(c, -46); x.globalAlpha = 0.5; x.stroke(); x.globalAlpha = 1;
+  x.restore();
+  // The tab carries nothing. It is a shape and a colour, as it is on the icon.
+}
+// No picture on an item, no label on its tab, no words on its face. What is left is the
+// object: a folder in one of the icon's colours. The list beside the crate does the naming.
+function moulding(x, it, W, H, top){
+  const c = it.hue, X = 64, Y = top + 60, w = W - 128, hh = H - top - 60 - 150;
+  x.fillStyle = shade(c, -12); rbox(x, X, Y, w, hh, 22); x.fill();
+  x.lineWidth = 3; x.strokeStyle = shade(c, -40); x.globalAlpha = 0.55; rbox(x, X, Y, w, hh, 22); x.stroke();
+  x.globalAlpha = 1; x.strokeStyle = shade(c, 22); rbox(x, X + 14, Y + 14, w - 28, hh - 28, 14); x.stroke();
+  // two rows of slots, as on the crate's face
+  const n = 18, pitch = (w - 120) / n, sh = (hh - 150) / 2;
+  for (let r = 0; r < 2; r++) for (let k = 0; k < n; k++) {
+    const sx = X + 60 + k * pitch + (pitch - 20) / 2, sy = Y + 50 + r * (sh + 50);
+    x.fillStyle = shade(c, 26); rbox(x, sx, sy + 3, 20, sh, 7); x.fill();
+    x.fillStyle = shade(c, -58); rbox(x, sx, sy, 20, sh, 7); x.fill();
+  }
+  // the foot rail
+  x.fillStyle = shade(c, -6); x.fillRect(11, H - 118, W - 22, 107);
+  x.fillStyle = shade(c, 28); x.fillRect(11, H - 118, W - 22, 3);
+}
 const STYLES = {
-  moulded(x, it, W, H, top){          // the crate's own vocabulary, in the item's colour
-    const c = it.hue;
-    x.fillStyle = c; x.fillRect(0, 0, W, H);
-    x.lineWidth = 16; x.strokeStyle = shade(c, 24); rbox(x, 8, top + 8, W - 16, H - top - 16, 34); x.stroke();
-    x.fillStyle = shade(c, -14); rbox(x, 52, top + 52, W - 104, H - top - 104, 18); x.fill();
-    x.lineWidth = 3; x.strokeStyle = shade(c, -36); rbox(x, 52, top + 52, W - 104, H - top - 104, 18); x.stroke();
-    x.strokeStyle = shade(c, 20); rbox(x, 66, top + 66, W - 132, H - top - 132, 12); x.stroke();
-    slots(x, 104, H - 176, 9, c, -52);
-    x.fillStyle = ink(c); x.textBaseline = "top"; fit(x, it.name, W - 220, 104); x.fillText(it.name, 104, top + 104);
-    x.font = FONT(500, 38); x.fillStyle = soft(c); x.fillText(it.line, 104, top + 230);
-    x.textAlign = "right"; x.fillText(it.year, W - 104, H - 150); x.textAlign = "left";
-  },
-  sleeve(x, it, W, H, top){           // the work itself, edge to edge, named along the foot
-    const c = it.hue;
-    x.fillStyle = c; x.fillRect(0, 0, W, H);
-    picture(x, it.img, 0, top, W, H - top, 0);
-    const g = x.createLinearGradient(0, H - 300, 0, H);
-    g.addColorStop(0, "rgba(16,14,12,0)"); g.addColorStop(1, "rgba(16,14,12,.86)");
-    x.fillStyle = g; x.fillRect(0, H - 300, W, 300);
-    x.lineWidth = 10; x.strokeStyle = shade(c, 10); rbox(x, 5, top + 5, W - 10, H - top - 10, 34); x.stroke();
-    x.fillStyle = "rgba(255,255,255,.96)"; x.textBaseline = "alphabetic";
-    fit(x, it.name, W - 380, 84); x.fillText(it.name, 64, H - 70);
-    x.font = FONT(500, 34); x.fillStyle = "rgba(255,255,255,.72)";
-    x.textAlign = "right"; x.fillText(it.year, W - 64, H - 74); x.textAlign = "left";
-  },
-  label(x, it, W, H, top){            // a paper card: a band of colour, type, a small window
-    const c = it.hue, paper = "#F2EEE6";
-    x.fillStyle = paper; x.fillRect(0, 0, W, H);
-    x.fillStyle = c; x.fillRect(0, top, 46, H - top);
-    x.lineWidth = 3; x.strokeStyle = "rgba(28,26,24,.16)"; rbox(x, 2, top + 2, W - 4, H - top - 4, 34); x.stroke();
-    x.textBaseline = "top"; x.fillStyle = "rgba(28,26,24,.5)"; x.font = FONT(600, 30);
-    x.fillText(String(it.n + 1).padStart(2, "0") + "   " + it.year.toUpperCase(), 104, top + 70);
-    x.fillStyle = "rgba(28,26,24,.94)"; fit(x, it.name, W - 620, 96); x.fillText(it.name, 104, top + 126);
-    x.font = FONT(400, 38); x.fillStyle = "rgba(28,26,24,.62)";
-    const words = it.line.split(" "); let row = "", y = top + 250;
-    for (const w of words) { if (x.measureText(row + w).width > W - 660) { x.fillText(row, 104, y); y += 52; row = ""; } row += w + " "; }
-    x.fillText(row, 104, y);
-    picture(x, it.img, W - 476, top + 70, 412, H - top - 250, 16);
-    x.lineWidth = 3; x.strokeStyle = "rgba(28,26,24,.14)"; rbox(x, W - 476, top + 70, 412, H - top - 250, 16); x.stroke();
-    x.font = FONT(500, 28); let tx = 104;
-    for (const t of it.tags) { const w = x.measureText(t).width + 44;
-      x.fillStyle = shade(c, 0); rbox(x, tx, H - 128, w, 58, 29); x.fill();
-      x.fillStyle = ink(c); x.textBaseline = "middle"; x.fillText(t, tx + 22, H - 98); tx += w + 14; }
-  },
-  window(x, it, W, H, top){           // a moulded frame in the item's colour around the work
-    const c = it.hue;
-    x.fillStyle = c; x.fillRect(0, 0, W, H);
-    x.lineWidth = 16; x.strokeStyle = shade(c, 24); rbox(x, 8, top + 8, W - 16, H - top - 16, 34); x.stroke();
-    x.fillStyle = shade(c, -40); rbox(x, 58, top + 58, W - 116, H - top - 232, 20); x.fill();
-    picture(x, it.img, 64, top + 64, W - 128, H - top - 244, 15);
-    x.lineWidth = 3; x.strokeStyle = shade(c, 22); rbox(x, 58, top + 58, W - 116, H - top - 232, 20); x.stroke();
-    x.fillStyle = ink(c); x.textBaseline = "alphabetic"; fit(x, it.name, W - 480, 72); x.fillText(it.name, 64, H - 74);
-    x.font = FONT(500, 32); x.fillStyle = soft(c);
-    x.textAlign = "right"; x.fillText(it.year, W - 64, H - 78); x.textAlign = "left";
+  blank(x, it, W, H, top, at){ sheet(x, it, W, H, top, at); },
+  moulded(x, it, W, H, top, at){
+    sheet(x, it, W, H, top, at);
+    x.save(); silhouette(x, W, H, top, at, 46); x.clip(); moulding(x, it, W, H, top);
+    // the rim again, over the rail's ends
+    silhouette(x, W, H, top, at, 46); x.lineWidth = 22; x.strokeStyle = shade(it.hue, 30); x.stroke();
+    x.restore();
   },
 };
-let style = "window", cut = "folder";
+let style = "blank", cut = "folder";
 function cover(i){
   const W = 1176, H = 800, c = document.createElement("canvas"); c.width = W; c.height = H;
   const x = c.getContext("2d"), it = item(i);
   const at = cut === "folder" ? [0, 0.5, 1][i % 3] : undefined;
   const top = at === undefined ? 0 : Math.round(H * fold.tabHeight);
-  STYLES[style](x, it, W, H, top);
-  if (at !== undefined) {
-    // the tab: the item's colour (paper, for a label), its name, and where it sits
-    const tw = W * fold.tabWidth, run = W * fold.tabRun;
-    const x0 = at <= 0 ? 0 : run + at * (W - tw - run * 2);
-    const c0 = style === "label" ? "#F2EEE6" : it.hue;
-    x.fillStyle = c0; x.fillRect(0, 0, W, top + 2);
-    if (style === "label") { x.fillStyle = it.hue; x.fillRect(x0 - run, 0, tw + run * 2, 12); }
-    x.fillStyle = style === "label" ? "rgba(28,26,24,.9)" : ink(it.hue);
-    x.textBaseline = "middle"; x.textAlign = "center";
-    fit(x, it.name, tw - 60, 44, 600); x.fillText(it.name, x0 + tw / 2, top / 2 + 6);
-    x.textAlign = "left";
-  }
+  STYLES[style](x, it, W, H, top, at);
   return { image: c, aspect: W / H, tab: at };
 }
 const covers = n => Array.from({ length: n }, (_, i) => cover(i));
