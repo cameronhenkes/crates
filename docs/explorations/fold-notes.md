@@ -1045,3 +1045,13 @@ stands out, and the crate, which keeps its own colour, sits between the two.
 The section above, "Item colours follow the page", describes the direction he
 rejected. Its mechanism (retoning, gain, keeping away from the crate's colour)
 still stands.
+
+## Colour retoning undone (28 Sep 2026)
+
+Cameron: "undo the colour changes."
+
+Items are back to the icon's own flat hues, the same on a dark page and a
+light one. Retoning for the page was tried both ways round and neither held.
+Kept: items never take the crate's colour or one near it; items are lit by the
+crate's lamps; moulded is the default style. `tune({gain})` stays in the
+module at 1, unused by the playground.
