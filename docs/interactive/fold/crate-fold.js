@@ -341,11 +341,6 @@ const BEATS = [
   {o:left,  axis:"z", to:-Math.PI/2, start:START.left,  fn:sideWall},
   {o:right, axis:"z", to: Math.PI/2, start:START.right, fn:sideWall},
 ];
-// Beats overlap rather than queue. At 0/0.26/0.50/0.74 the base was flat by
-// t=0.52 with two walls still standing, so half the animation was spent in a
-// state that reads as broken rather than as folding.
-const SPAN = 0.34;
-
 // ease-out cubic is heavily front-loaded: 90% done at 54% through. On a
 // four-beat sequence that makes each wall snap and then wait, which reads
 // as a jump rather than a fold. ease-in-out spends the time in the middle,
