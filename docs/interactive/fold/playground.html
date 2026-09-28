@@ -80,7 +80,7 @@
    <p class="note">A folder in one of the icon's hues, the crate's own colour, darker. No picture, no words. The list names it.</p>
    <div class="row" id="styles"><button data-style="moulded">Moulded like the crate</button><button data-style="blank">Plain</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
-   <label>Darker than the crate by <output id="darkOut">30%</output><input id="dark" type="range" min="0" max="70" step="1" value="30"></label>
+   <label>Darker than the crate by <output id="darkOut">50%</output><input id="dark" type="range" min="0" max="85" step="1" value="50"></label>
    <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
    <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
    <h2>Moving the cursor through the crate</h2>
@@ -142,7 +142,7 @@ const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >
 const apart = (a, b) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
 // Every item is the crate's own colour, darker. They are told apart by where their tabs sit
 // and by the list, not by colour: the crate and what is in it read as one object.
-let tone = "dark", darker = 0.30;
+let tone = "dark", darker = 0.50;
 const deepen = (c, by) => "#" + rgb(c).map(v => Math.round(v * (1 - by)).toString(16).padStart(2, "0")).join("");
 const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
                      hue: deepen(CRATE, darker) });
