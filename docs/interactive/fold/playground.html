@@ -77,7 +77,7 @@
    <p class="note">Hover a name or move through the crate. Move away and they all sit back down. Scroll and arrow keys work too; Escape puts them back.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
-   <p class="note">A folder in one of the icon's colours, never the crate's own. No picture, no words. The list names it.</p>
+   <p class="note">A folder in one of the icon's hues, never the crate's own: deep on a dark page, pale on a light one. No picture, no words. The list names it.</p>
    <div class="row" id="styles"><button data-style="blank">Plain</button><button data-style="moulded">Moulded like the crate</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
    <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
@@ -139,11 +139,38 @@ const PALETTE = ["#C3D2E1", "#9EB29A", "#C6BFD8", "#EEDFA6", "#E8B69B", "#9E9B63
                  "#C7C7C1", "#D79A4D", "#EBE9E3", "#55565A", "#3A3A3C", "#C0614B"];
 const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
 const apart = (a, b) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
-const ALLOWED = PALETTE.filter(c => apart(c, CRATE) > 70);
+// The icon's hues, retoned for the page they sit on. On a dark page the items are deep: the
+// flat hue at full lightness glares against it. On a light page they are pale, for the same
+// reason the other way round. The hue is kept; lightness and strength move.
+const hsl = hex => { let [r, g, b] = rgb(hex).map(v => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const hh = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [hh * 60, s, l]; };
+const hex = (hh, s, l) => { const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((hh / 60) % 2 - 1)), m = l - c / 2;
+  const [r, g, b] = hh < 60 ? [c, x, 0] : hh < 120 ? [x, c, 0] : hh < 180 ? [0, c, x] : hh < 240 ? [0, x, c] : hh < 300 ? [x, 0, c] : [c, 0, x];
+  return "#" + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join(""); };
+const TONES = { dark: { l: [0.30, 0.40], s: v => Math.min(0.62, v * 1.1 + 0.06) },
+                // pale, but with enough colour left to tell six of them apart once they are shaded
+                light: { l: [0.86, 0.93], s: v => Math.min(0.85, v * 1.2 + 0.12) } };
+let tone = "dark";
+function toned(c, which = tone){
+  const [hh, s, l] = hsl(c), t = TONES[which];
+  // keep each hue's place in the order of lightness, inside the band for this page
+  return hex(hh, s < 0.04 ? s : t.s(s), t.l[0] + (t.l[1] - t.l[0]) * l);
+}
+let ALLOWED = [];
+function palette(){
+  // the crate keeps its own colour on either page, so that is what an item is kept away from
+  ALLOWED = PALETTE.filter(c => apart(c, CRATE) > 70).map(c => toned(c))
+                   .filter(c => apart(c, CRATE) > 60);
+}
+palette();
 const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
                      hue: ALLOWED[i % ALLOWED.length] });
 const NAMES = ITEMS.map(v => v.name);
-const HUES = Array.from({ length: 12 }, (_, i) => ALLOWED[i % ALLOWED.length]);
+
 const PICS = [];
 const pics = Promise.all(ITEMS.map((_, i) => new Promise(done => {
   const im = new Image(); im.onload = () => { PICS[i] = im; done(); }; im.onerror = () => done();
@@ -295,7 +322,8 @@ function defaults(){
   $("flipMs").value = v.flip; $("flipOut").textContent = v.flip + " ms";
 }
 function tuned(){
-  const v = fold.tune({ gap: val("gap"), lift: val("lift") / 100, backLean: val("back"), forwardLean: val("fwd") });
+  const v = fold.tune({ gap: val("gap"), lift: val("lift") / 100, backLean: val("back"), forwardLean: val("fwd"),
+                        gain: tone === "light" ? 1.7 : 1 });
   $("tuned").textContent =
     `gap ${v.gap}${v.gapActual < v.gap ? " (" + v.gapActual + " fits)" : ""}   lift ${Math.round(v.lift * 100)}% (${v.liftUnits} units)\n` +
     `lean back ${v.backLean}°   lean forward ${v.forwardLeanActual}°` +
@@ -330,6 +358,14 @@ function box(){
   return b;
 }
 
+function setTheme(which){
+  tone = which; document.body.classList.toggle("light", which === "light");
+  palette();
+  if (mode === "records" && fold) {
+    const keep = fold.selected();
+    fold.setRecords(covers(val("n"))); fold.seek({ to: keep }); names(val("n")); tuned();
+  }
+}
 const DO = {
   toggle: () => fold.toggle(),
   playFold: () => fold.play(1, val("pace")),
@@ -353,9 +389,10 @@ const DO = {
     await fold.dropRecords(covers(6), val("dropMs"), 2);
   },
   flyReset: () => go("flight"),
-  theme: () => document.body.classList.toggle("light"),
+  theme: () => setTheme(tone === "dark" ? "light" : "dark"),
   copy(){
     const v = { fold: { pace: val("pace") }, present: { pace: val("openPace") },
+                page: tone, items: ALLOWED.slice(0, val("n")),
                 records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, item: style, cut, ...fold.tune?.() },
                 flight: { ms: val("flyMs"), dropMs: val("dropMs") } };
     navigator.clipboard.writeText(JSON.stringify(v, null, 2));
@@ -422,5 +459,6 @@ const want = location.hash.slice(1).split("/");
 if (STYLES[want[1]]) style = want[1];
 if (want[2] === "card" || want[2] === "folder") cut = want[2];
 go(["fold", "open", "records", "flight"].includes(want[0]) ? want[0] : "records");
-if (want[3]) { fold.seek({ to: parseInt(want[3], 10) }); mark(); }
+if (want[4] === "light") setTheme("light");
+if (want[3] && want[3] !== "-") { fold.seek({ to: parseInt(want[3], 10) }); mark(); }
 </script></body></html>

@@ -633,8 +633,10 @@ const WALL_IN = END_Z - TH / 2;             // the front wall's inner face
 const WALL_TOP = H;                         // its highest point, the tab
 // What a designer would want to try by hand: tune() changes these and lays the records again.
 // Front up, these are Cameron's, set by hand in the playground on 28 Sep 2026.
-const TUNE = UP ? {gap: 140, lift: 0.69, backLean: 45, forwardLean: 60}
-                : {gap: 80, lift: 0.30, backLean: 24, forwardLean: 60};
+// gain: how much light a record's surface gives back. 1 is the crate's own plastic. A pale
+// record on a light page wants more, or the lamps that make the crate deep make it grey.
+const TUNE = UP ? {gap: 140, lift: 0.69, backLean: 45, forwardLean: 60, gain: 1}
+                : {gap: 80, lift: 0.30, backLean: 24, forwardLean: 60, gain: 1};
 const FLIP_MS = UP ? 520 : 260;
 let listed = [];
 const RIM_EDGE = {z: D/2 - FASCIA, y: RIM};   // the top inner edge of the base's front face
@@ -800,7 +802,7 @@ function place(r){
   r.mesh.position.y = r.h / 2 + r.up + r.drop;
   if (recordLit) {
     const out = clamp01((r.up + r.drop) / Math.max(1, (lifts[r.i] ?? lift) * 0.7));
-    const k = REC_SHADE + (1 - REC_SHADE) * out * out * (3 - 2 * out);
+    const k = (REC_SHADE + (1 - REC_SHADE) * out * out * (3 - 2 * out)) * TUNE.gain;
     for (const {m, base} of r.mats) m.color.copy(base).multiplyScalar(k);
   }
 }

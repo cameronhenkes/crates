@@ -1004,3 +1004,24 @@ as one painted there.
 
 A lifted item leaning back could reach the back wall. Frames are now settled
 from the back as well as the front.
+
+## Item colours follow the page (28 Sep 2026)
+
+Cameron: "if it's in a dark mode, we should opt for more dark colours than the
+flat hues and in light mode, more lighter colours."
+
+Why: the palette's flat hues were chosen for folder icons on a desktop. On a
+dark page they glare; on a light page the deep ones punch holes in it.
+
+- The icon's hues are kept and retoned: deep on a dark page (lightness 0.30 to
+  0.40), pale on a light one (0.86 to 0.93). Each hue keeps its place in the
+  order of lightness.
+- Pale items under the crate's lamps came out grey, because those lamps are
+  what make the crate deep. `tune({gain})` lets a surface give back more light;
+  the light page uses 1.7, the dark page 1.
+- The crate keeps its own colour on either page, and that is the colour items
+  are kept away from.
+
+First attempt at the light page made every item the same grey: I was filtering
+against a retoned crate colour, and every pale colour is close to a pale
+pink. Caught in the render.

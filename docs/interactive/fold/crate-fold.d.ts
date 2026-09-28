@@ -136,8 +136,8 @@ export type CrateFoldHandle = {
    */
   resize(size: number): void;
   /** Change how the records sit and lay them again. Returns the values in force. */
-  tune(values?: { gap?: number; lift?: number; backLean?: number; forwardLean?: number }): {
-    gap: number; lift: number; backLean: number; forwardLean: number; front: "up" | "down";
+  tune(values?: { gap?: number; lift?: number; backLean?: number; forwardLean?: number; gain?: number }): {
+    gap: number; lift: number; backLean: number; forwardLean: number; gain: number; front: "up" | "down";
     forwardLeanActual: number; liftUnits: number;
   };
   /** For review: paint one instant. Nothing animates. */
