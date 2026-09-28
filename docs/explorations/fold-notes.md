@@ -1066,3 +1066,6 @@ The crate and its contents read as one object in one material. Items are told
 apart by where their tabs sit and by the list beside the crate, not by colour.
 
 The rule is relative to the crate: a sage crate holds darker sage items.
+
+Cameron then took the darkness to 70% himself ("go darker", then the slider):
+the items are #3a1d17 before lighting. That is the default.
