@@ -891,3 +891,25 @@ least gap to the front wall 1.4, between neighbours 67.8, to the back wall 160.
 Frame sheets of the flip from the front and the side, and of the flight.
 
 Compromise: the chosen record hangs above the crate with nothing holding it.
+
+## Cameron's values, and steering by cursor (28 Sep 2026)
+
+Set by him in the playground and now the defaults with the front standing:
+flip 700 ms, gap 134, extra lift 61%, lean back 21, lean forward at most 27.
+
+Two things those values exposed:
+
+- The lift took the chosen record out of the top of the frame. The records
+  camera now stands further back. It is fixed, not fitted to the records,
+  because a crate that flies in has none until they are lowered in, and a
+  camera that moved when they arrived would jump.
+- A record coming down while already leaning went 8 units into the front
+  wall. Each frame is now settled: a record may only lean as far as the part
+  of it still below the wall's top allows, and no record leans further
+  forward than the one in front of it.
+
+"I want to be able to easily move my cursor through the crate to go between
+them." Touching a record was hard to steer: most of each record is behind the
+front wall, and the chosen one leaves from under the cursor. `through()` shares
+the crate's outline on screen evenly between the records, front to back or left
+to right, and holds on near a boundary so a resting hand does not flutter.

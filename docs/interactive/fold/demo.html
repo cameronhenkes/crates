@@ -92,6 +92,13 @@ if (probe === "logic") {
   fold.seek({to: 2});
   out.pickCentre = fold.pick(r.left + r.width / 2, r.top + r.height * 0.42);
   out.pickCorner = fold.pick(r.left + 4, r.top + 4);
+  const o = fold.outline(), cx = (o.left + o.right) / 2;
+  out.outline = [o.left, o.top, o.right, o.bottom].map(Math.round);
+  out.throughBottomToTop = [0.04, 0.2, 0.4, 0.6, 0.8, 0.96].map(f =>
+    fold.through(cx, o.bottom - f * (o.bottom - o.top)));
+  out.throughAcross = [0.04, 0.5, 0.96].map(f =>
+    fold.through(o.left + f * (o.right - o.left), (o.top + o.bottom) / 2, "across"));
+  out.throughOutside = fold.through(o.left - 20, o.top - 20);
   let queue = [], now = 1000;
   window.requestAnimationFrame = f => (queue.push(f), 0);
   let frames = 0, order = 0, backGap = 1e9, rimGap = 1e9, neighbour = 1e9;

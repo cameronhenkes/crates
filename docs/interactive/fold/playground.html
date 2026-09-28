@@ -76,16 +76,19 @@
   <section id="records">
    <p class="note">Hover a name, hover a record, scroll over the crate, or use the arrow keys.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
+   <h2>Moving the cursor through the crate</h2>
+   <div class="row"><button data-do="axDepth">Front to back</button><button data-do="axAcross">Left to right</button><button data-do="axPick">Touch a record</button></div>
+   <p class="note" id="axNote">Front to back: the bottom of the crate is the first record, the top is the last.</p>
    <h2>Front of the crate</h2>
    <div class="row"><button data-do="frontUp">Standing</button><button data-do="frontDown">Folded down</button></div>
    <h2>Records</h2>
    <label>How many <output id="nOut">6</output><input id="n" type="range" min="1" max="12" step="1" value="6"></label>
-   <label>Flip takes <output id="flipOut">260 ms</output><input id="flipMs" type="range" min="80" max="900" step="10" value="260"></label>
+   <label>Flip takes <output id="flipOut">700 ms</output><input id="flipMs" type="range" min="80" max="1500" step="10" value="700"></label>
    <h2>How they sit</h2>
-   <label>Gap between records <output id="gapOut">80</output><input id="gap" type="range" min="20" max="140" step="2" value="80"></label>
-   <label>Extra lift of the chosen one <output id="liftOut">6%</output><input id="lift" type="range" min="0" max="80" step="1" value="6"></label>
-   <label>Lean back <output id="backOut">16°</output><input id="back" type="range" min="0" max="45" step="1" value="16"></label>
-   <label>Lean forward, at most <output id="fwdOut">60°</output><input id="fwd" type="range" min="10" max="60" step="1" value="60"></label>
+   <label>Gap between records <output id="gapOut">134</output><input id="gap" type="range" min="20" max="140" step="2" value="134"></label>
+   <label>Extra lift of the chosen one <output id="liftOut">61%</output><input id="lift" type="range" min="0" max="80" step="1" value="61"></label>
+   <label>Lean back <output id="backOut">21°</output><input id="back" type="range" min="0" max="45" step="1" value="21"></label>
+   <label>Lean forward, at most <output id="fwdOut">27°</output><input id="fwd" type="range" min="10" max="60" step="1" value="27"></label>
    <h2>Frame by frame</h2>
    <label>Flip from the record before <output id="kOut">100%</output><input id="k" type="range" min="0" max="1" step="0.01" value="1"></label>
    <pre id="tuned"></pre>
@@ -181,14 +184,18 @@ function choose(i){
 }
 // the two fronts sit their records differently, so each starts from its own values
 function defaults(){
-  const v = frontWall === "up" ? { lift: 6, back: 16 } : { lift: 30, back: 24 };
+  const v = frontWall === "up" ? { lift: 61, back: 21, gap: 134, fwd: 27, flip: 700 }
+                               : { lift: 30, back: 24, gap: 80, fwd: 60, flip: 260 };
   $("lift").value = v.lift; $("liftOut").textContent = v.lift + "%";
   $("back").value = v.back; $("backOut").textContent = v.back + "°";
+  $("gap").value = v.gap; $("gapOut").textContent = v.gap;
+  $("fwd").value = v.fwd; $("fwdOut").textContent = v.fwd + "°";
+  $("flipMs").value = v.flip; $("flipOut").textContent = v.flip + " ms";
 }
 function tuned(){
   const v = fold.tune({ gap: val("gap"), lift: val("lift") / 100, backLean: val("back"), forwardLean: val("fwd") });
   $("tuned").textContent =
-    `gap ${v.gap}   lift ${Math.round(v.lift * 100)}% (${v.liftUnits} units)\n` +
+    `gap ${v.gap}${v.gapActual < v.gap ? " (" + v.gapActual + " fits)" : ""}   lift ${Math.round(v.lift * 100)}% (${v.liftUnits} units)\n` +
     `lean back ${v.backLean}°   lean forward ${v.forwardLeanActual}°` +
     (v.forwardLeanActual < v.forwardLean - 0.05 ? (v.front === "up" ? "  (stopped by the front wall)" : "  (stopped by the rim)") : "") +
     `\nfront ${v.front === "up" ? "standing" : "folded down"}` +
@@ -231,6 +238,9 @@ const DO = {
   drop: () => { fold.dropRecords(covers(val("n")), 700).then(mark); },
   frontUp: () => { frontWall = "up"; defaults(); go(mode); },
   frontDown: () => { frontWall = "down"; defaults(); go(mode); },
+  axDepth: () => { axis = "depth"; $("axNote").textContent = "Front to back: the bottom of the crate is the first record, the top is the last."; },
+  axAcross: () => { axis = "across"; $("axNote").textContent = "Left to right: the left edge of the crate is the first record, the right edge is the last."; },
+  axPick: () => { axis = "pick"; $("axNote").textContent = "Touch a record: only the record directly under the cursor. This is how it was."; },
   side: () => { side = !side; fold.__camera(side ? "side" : null); },
   async fly(){
     if (flown) return;
@@ -243,7 +253,7 @@ const DO = {
   theme: () => document.body.classList.toggle("light"),
   copy(){
     const v = { fold: { pace: val("pace") }, present: { pace: val("openPace") },
-                records: { count: val("n"), flipMs: val("flipMs"), ...fold.tune?.() },
+                records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, ...fold.tune?.() },
                 flight: { ms: val("flyMs"), dropMs: val("dropMs") } };
     navigator.clipboard.writeText(JSON.stringify(v, null, 2));
     $("copied").textContent = "Copied. Paste it to me and I will set these as the defaults.";
@@ -283,8 +293,10 @@ $("k").addEventListener("input", () => {
 });
 
 // the crate itself: hover a record, scroll through, arrow keys
+let axis = "depth";
 mount.addEventListener("mousemove", e => { if (mode !== "records" || side) return;
-  const i = fold.pick(e.clientX, e.clientY); if (i >= 0) choose(i); });
+  const i = axis === "pick" ? fold.pick(e.clientX, e.clientY) : fold.through(e.clientX, e.clientY, axis);
+  if (i >= 0) choose(i); });
 let wheel = 0;
 mount.addEventListener("wheel", e => { if (mode !== "records") return; e.preventDefault();
   wheel += e.deltaY; if (Math.abs(wheel) > 40) { choose(fold.selected() + Math.sign(wheel)); wheel = 0; } }, { passive: false });

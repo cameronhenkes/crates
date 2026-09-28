@@ -82,11 +82,20 @@ export type CrateFoldHandle = {
   /**
    * Flip to a record. Those in front lean forward over the folded front wall, it stands upright
    * and lifts, those behind lean back. Interruptible: call it as often as the pointer moves.
-   * 260ms by default, cubic-bezier(0.2, 0, 0, 1).
+   * `flipDuration` by default (700ms front up, 260ms front down), cubic-bezier(0.2, 0, 0, 1).
    */
   select(index: number, ms?: number): Promise<void>;
   /** The record select() last aimed at. */
   selected(): number;
+  /**
+   * The record the pointer is asking for as it moves through the crate, or -1 when it is not
+   * over the crate. The crate's outline on screen is shared evenly between the records: "depth"
+   * (default) is front to back, bottom to top on screen; "across" is left to right. Use this
+   * for hover; it is far easier to steer than pick().
+   */
+  through(clientX: number, clientY: number, axis?: "depth" | "across"): number;
+  /** The crate's outline on screen, in client pixels. The chosen record stands above it. */
+  outline(): { left: number; top: number; right: number; bottom: number };
   /** The record under a point of the screen (clientX, clientY), or -1. */
   pick(clientX: number, clientY: number): number;
   /**
@@ -118,6 +127,8 @@ export type CrateFoldHandle = {
   duration: number;
   /** Length of present() at its own pace, in milliseconds */
   presentDuration: number;
+  /** Default length of a flip, in milliseconds */
+  flipDuration: number;
 };
 
 export function createCrateFold(options: CrateFoldOptions): CrateFoldHandle;
