@@ -626,6 +626,33 @@ let listed = [];
 const RIM_EDGE = {z: D/2 - FASCIA, y: RIM};   // the top inner edge of the base's front face
 let records = [], sel = 0, flip = 0, lean = {fwd: 0, back: 0}, lift = 0, lifts = [];
 
+// A record cut as a folder: the crate's own silhouette, with a tab standing up from its top
+// edge. `at` slides the tab along, 0 hard left to 1 hard right, so a row of them can be staggered
+// and every name read from above without lifting one out.
+const TAB_H = 0.13, TAB_W = 0.34, TAB_RUN = 44;
+function folderShape(w, h, r, at){
+  const hb = h * (1 - TAB_H), tw = w * TAB_W, sh = new THREE.Shape();
+  const x0 = at <= 0 ? 0 : TAB_RUN + at * (w - tw - TAB_RUN * 2), x1 = x0 + tw;
+  const rt = Math.min(r, (h - hb) * 0.9);
+  sh.moveTo(r, 0);
+  sh.lineTo(w - r, 0);        sh.absarc(w - r, r, r, -PI/2, 0, false);
+  if (x1 + TAB_RUN >= w - r) {                       // tab hard right: it IS the corner
+    sh.lineTo(w, h - rt);     sh.absarc(w - rt, h - rt, rt, 0, PI/2, false);
+  } else {
+    sh.lineTo(w, hb - r);     sh.absarc(w - r, hb - r, r, 0, PI/2, false);
+    sh.lineTo(x1 + TAB_RUN, hb);
+    sh.bezierCurveTo(x1 + TAB_RUN * 0.45, hb, x1 + TAB_RUN * 0.55, h, x1, h);
+  }
+  if (x0 <= 0) {                                     // tab hard left: it IS the corner
+    sh.lineTo(rt, h);         sh.absarc(rt, h - rt, rt, PI/2, PI, false);
+  } else {
+    sh.lineTo(x0, h);
+    sh.bezierCurveTo(x0 - TAB_RUN * 0.55, h, x0 - TAB_RUN * 0.45, hb, x0 - TAB_RUN, hb);
+    sh.lineTo(r, hb);         sh.absarc(r, hb - r, r, PI/2, PI, false);
+  }
+  sh.lineTo(0, r);            sh.absarc(r, r, r, PI, 1.5*PI, false);
+  return sh;
+}
 function setRecords(list){
   // The side walls lie across the floor when folded and sweep the whole inside as they rise.
   // Records can only be in a crate whose walls are already up.
@@ -652,13 +679,15 @@ function setRecords(list){
     // A slab cut to a rounded outline, like every other part of the crate. Its faces carry the
     // cover; UVs come out in shape units, so the texture is scaled back to 0..1.
     tex.repeat.set(1 / w, 1 / h);
-    const geo = new THREE.ExtrudeGeometry(rectShape(w, h, Math.min(recordRadius, h / 4)),
+    const rr = Math.min(recordRadius, h / 4);
+    const outlineOf = () => it.tab === undefined ? rectShape(w, h, rr) : folderShape(w, h, rr, it.tab);
+    const geo = new THREE.ExtrudeGeometry(outlineOf(),
       {depth: REC_T, bevelEnabled: false, curveSegments: 12});
     geo.translate(-w / 2, -h / 2, -REC_T / 2);
     const mesh = new THREE.Mesh(geo, [face, card()]);
     // the back is plain card, a hair behind the slab's own rear face
     const rear = new THREE.Mesh(
-      new THREE.ShapeGeometry(rectShape(w, h, Math.min(recordRadius, h / 4)), 12), card());
+      new THREE.ShapeGeometry(outlineOf(), 12), card());
     rear.geometry.translate(-w / 2, -h / 2, 0);
     rear.rotation.y = Math.PI; rear.position.z = -REC_T / 2 - 0.2;
     mesh.add(rear);
@@ -913,5 +942,5 @@ apply(t);
 if (view === "records") settled();
 return { toggle, set, play, takeover, dolly, land, setPrints,
          setOpenFront, present, setRecords, dropRecords, select, selected, pick, through, outline, flyTo, resize, tune, seek, __camera, __angles, __gaps,
-         dispose, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
+         dispose, tabHeight: TAB_H, tabWidth: TAB_W, tabRun: TAB_RUN / REC_W, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
 }

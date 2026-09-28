@@ -6,3 +6,6 @@ Icon?
 # generated artwork and icons
 build/
 *.iconset/
+
+# your own project images for the playground; never published
+docs/interactive/fold/local/

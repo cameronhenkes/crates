@@ -913,3 +913,25 @@ them." Touching a record was hard to steer: most of each record is behind the
 front wall, and the chosen one leaves from under the cursor. `through()` shares
 the crate's outline on screen evenly between the records, front to back or left
 to right, and holds on near a boundary so a resting hand does not flutter.
+
+## The items (28 Sep 2026)
+
+Cameron: "animation looks good. But now lets focus on the items themselves."
+He had also told the portfolio session "we need to create a different style
+to covers".
+
+The playground now shows his six real projects, with four ways to make an
+item and two ways to cut it:
+
+- Window: a moulded frame in the item's colour around the work.
+- Sleeve: the work edge to edge, named along the foot.
+- Label: a paper card with a band of colour, type and a small window.
+- Moulded: the crate's own vocabulary, no image.
+- Cut as a folder: the item takes the icon's silhouette, with a tab. Tabs are
+  staggered left, middle, right, so every name reads from above while the
+  items are still in the crate.
+- Cut as a card: a plain rounded card.
+
+Colours are the twelve from the icon palette. Project images are read from
+`docs/interactive/fold/local/`, which is ignored by git: this repository is
+public and the images are client work.

@@ -18,7 +18,7 @@
  h1{font-size:15px;margin:0 0 2px} .sub{color:var(--mute);font-size:12.5px;margin:0 0 16px}
  nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:18px}
  nav button,.row button{appearance:none;border:1px solid var(--line);background:none;color:var(--ink);font:inherit;font-size:12.5px;padding:7px 8px;border-radius:8px;cursor:pointer}
- nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+ nav button[aria-pressed="true"],.row button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
  .row button:hover{border-color:var(--mute)}
  section{display:none} section.on{display:block}
  h2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:18px 0 8px;font-weight:600}
@@ -76,6 +76,11 @@
   <section id="records">
    <p class="note">Hover a name, hover a record, scroll over the crate, or use the arrow keys.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
+   <h2>The items</h2>
+   <div class="row" id="styles"><button data-style="window">Window</button><button data-style="sleeve">Sleeve</button><button data-style="label">Label</button><button data-style="moulded">Moulded</button></div>
+   <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
+   <canvas id="flat" width="1176" height="800" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
+   <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
    <h2>Moving the cursor through the crate</h2>
    <div class="row"><button data-do="axDepth">Front to back</button><button data-do="axAcross">Left to right</button><button data-do="axPick">Touch a record</button></div>
    <p class="note" id="axNote">Front to back: the bottom of the crate is the first record, the top is the last.</p>
@@ -117,39 +122,129 @@ const TEX = { "front.png": "tex/front.png", "back.png": "tex/back.png",
               "side.png": "tex/side.png", "floor.png": "tex/floor.png" };
 const WORDS = { closed: "closed", folding: "folding", folded: "folded flat", unfolding: "unfolding",
                 opening: "opening", open: "open at the front" };
-const NAMES = ["Aura Cloud", "Charting study", "Crates", "Design system", "Omnimap", "WorkShed",
-               "Strike", "Field notes", "Pathfindr", "Taxfix", "Commander", "Capture"];
-const HUES = ["#d8623f", "#3f7fd8", "#e6b53a", "#4fa36b", "#9a5fd0", "#d84f7c",
-              "#3fb8c4", "#8a8f98", "#c98a3c", "#5a6fd8", "#7fae3f", "#b0567a"];
+// The items are Cameron's real projects. Their images live in local/, which is never published.
+const ITEMS = [
+  { name: "Emesent", line: "Research from nothing, prototypes in code", year: "2025 – Present", tags: ["Autonomous mapping", "Coded prototypes"], hue: "#C0614B" },
+  { name: "Strike Analytics", line: "13 pivots, and the method that survived", year: "2023 – 2025", tags: ["0-to-1", "AI/ML"], hue: "#C3D2E1" },
+  { name: "Taxfix", line: "A feature for users I couldn't interview", year: "2020 – 2021", tags: ["Regulated fintech", "Research"], hue: "#D79A4D" },
+  { name: "Microbiome", line: "The brief was wrong", year: "2022 – 2024", tags: ["Healthcare", "Data visualisation"], hue: "#9EB29A" },
+  { name: "Sesame", line: "Proving demand before building", year: "2021 – 2022", tags: ["Growth", "A/B testing"], hue: "#C6BFD8" },
+  { name: "AI Digital Advisor", line: "From POC to production for 4.5M users", year: "2025", tags: ["Multi-agent", "Guardrails"], hue: "#E8B69B" },
+];
+const MORE = ["#9E9B63", "#EEDFA6", "#C7C7C1", "#EBE9E3", "#55565A", "#3A3A3C"];
+const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
+                     hue: i < ITEMS.length ? ITEMS[i].hue : MORE[(i - ITEMS.length) % MORE.length] });
+const NAMES = ITEMS.map(v => v.name);
+const HUES = Array.from({ length: 12 }, (_, i) => i < 6 ? ITEMS[i].hue : MORE[i - 6]);
+const PICS = [];
+const pics = Promise.all(ITEMS.map((_, i) => new Promise(done => {
+  const im = new Image(); im.onload = () => { PICS[i] = im; done(); }; im.onerror = () => done();
+  im.src = `local/${i}.png`;
+})));
 
-// A cover in the crate's own vocabulary: a lit rim round the edge, a recessed panel inside it,
-// and a row of slots. The module cuts the rounded outline; this is only what is printed on it.
 function shade(hex, by){
   const n = parseInt(hex.slice(1), 16);
   const f = v => Math.max(0, Math.min(255, Math.round(v + by)));
   return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
 }
-function round(x, X, Y, W, H, R){ x.beginPath(); x.roundRect(X, Y, W, H, R); }
+const dark = hex => { const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 140; };
+const ink = hex => dark(hex) ? "rgba(255,255,255,.95)" : "rgba(28,26,24,.92)";
+const soft = hex => dark(hex) ? "rgba(255,255,255,.66)" : "rgba(28,26,24,.58)";
+function rbox(x, X, Y, W, H, R){ x.beginPath(); x.roundRect(X, Y, W, H, R); }
+function picture(x, im, X, Y, W, H, R){
+  x.save(); rbox(x, X, Y, W, H, R); x.clip();
+  if (im) { const s = Math.max(W / im.width, H / im.height);
+    x.drawImage(im, X + (W - im.width * s) / 2, Y + (H - im.height * s) / 2, im.width * s, im.height * s); }
+  else { x.fillStyle = "rgba(0,0,0,.18)"; x.fillRect(X, Y, W, H); }
+  x.restore();
+}
+function fit(x, text, max, size, weight = 700){
+  do { x.font = `${weight} ${size}px -apple-system, "Helvetica Neue", sans-serif`; size -= 2; }
+  while (x.measureText(text).width > max && size > 20);
+}
+const FONT = (w, s) => `${w} ${s}px -apple-system, "Helvetica Neue", sans-serif`;
+function slots(x, X, Y, n, hue, by){ for (let k = 0; k < n; k++) { x.fillStyle = shade(hue, by); rbox(x, X + k * 38, Y, 17, 70, 6); x.fill(); } }
+
+// Four ways to make an item. Each draws the body into (0, top, W, H - top); `top` is the height
+// of the tab when the item is cut as a folder, and 0 when it is a card.
+const STYLES = {
+  moulded(x, it, W, H, top){          // the crate's own vocabulary, in the item's colour
+    const c = it.hue;
+    x.fillStyle = c; x.fillRect(0, 0, W, H);
+    x.lineWidth = 16; x.strokeStyle = shade(c, 24); rbox(x, 8, top + 8, W - 16, H - top - 16, 34); x.stroke();
+    x.fillStyle = shade(c, -14); rbox(x, 52, top + 52, W - 104, H - top - 104, 18); x.fill();
+    x.lineWidth = 3; x.strokeStyle = shade(c, -36); rbox(x, 52, top + 52, W - 104, H - top - 104, 18); x.stroke();
+    x.strokeStyle = shade(c, 20); rbox(x, 66, top + 66, W - 132, H - top - 132, 12); x.stroke();
+    slots(x, 104, H - 176, 9, c, -52);
+    x.fillStyle = ink(c); x.textBaseline = "top"; fit(x, it.name, W - 220, 104); x.fillText(it.name, 104, top + 104);
+    x.font = FONT(500, 38); x.fillStyle = soft(c); x.fillText(it.line, 104, top + 230);
+    x.textAlign = "right"; x.fillText(it.year, W - 104, H - 150); x.textAlign = "left";
+  },
+  sleeve(x, it, W, H, top){           // the work itself, edge to edge, named along the foot
+    const c = it.hue;
+    x.fillStyle = c; x.fillRect(0, 0, W, H);
+    picture(x, it.img, 0, top, W, H - top, 0);
+    const g = x.createLinearGradient(0, H - 300, 0, H);
+    g.addColorStop(0, "rgba(16,14,12,0)"); g.addColorStop(1, "rgba(16,14,12,.86)");
+    x.fillStyle = g; x.fillRect(0, H - 300, W, 300);
+    x.lineWidth = 10; x.strokeStyle = shade(c, 10); rbox(x, 5, top + 5, W - 10, H - top - 10, 34); x.stroke();
+    x.fillStyle = "rgba(255,255,255,.96)"; x.textBaseline = "alphabetic";
+    fit(x, it.name, W - 380, 84); x.fillText(it.name, 64, H - 70);
+    x.font = FONT(500, 34); x.fillStyle = "rgba(255,255,255,.72)";
+    x.textAlign = "right"; x.fillText(it.year, W - 64, H - 74); x.textAlign = "left";
+  },
+  label(x, it, W, H, top){            // a paper card: a band of colour, type, a small window
+    const c = it.hue, paper = "#F2EEE6";
+    x.fillStyle = paper; x.fillRect(0, 0, W, H);
+    x.fillStyle = c; x.fillRect(0, top, 46, H - top);
+    x.lineWidth = 3; x.strokeStyle = "rgba(28,26,24,.16)"; rbox(x, 2, top + 2, W - 4, H - top - 4, 34); x.stroke();
+    x.textBaseline = "top"; x.fillStyle = "rgba(28,26,24,.5)"; x.font = FONT(600, 30);
+    x.fillText(String(it.n + 1).padStart(2, "0") + "   " + it.year.toUpperCase(), 104, top + 70);
+    x.fillStyle = "rgba(28,26,24,.94)"; fit(x, it.name, W - 620, 96); x.fillText(it.name, 104, top + 126);
+    x.font = FONT(400, 38); x.fillStyle = "rgba(28,26,24,.62)";
+    const words = it.line.split(" "); let row = "", y = top + 250;
+    for (const w of words) { if (x.measureText(row + w).width > W - 660) { x.fillText(row, 104, y); y += 52; row = ""; } row += w + " "; }
+    x.fillText(row, 104, y);
+    picture(x, it.img, W - 476, top + 70, 412, H - top - 250, 16);
+    x.lineWidth = 3; x.strokeStyle = "rgba(28,26,24,.14)"; rbox(x, W - 476, top + 70, 412, H - top - 250, 16); x.stroke();
+    x.font = FONT(500, 28); let tx = 104;
+    for (const t of it.tags) { const w = x.measureText(t).width + 44;
+      x.fillStyle = shade(c, 0); rbox(x, tx, H - 128, w, 58, 29); x.fill();
+      x.fillStyle = ink(c); x.textBaseline = "middle"; x.fillText(t, tx + 22, H - 98); tx += w + 14; }
+  },
+  window(x, it, W, H, top){           // a moulded frame in the item's colour around the work
+    const c = it.hue;
+    x.fillStyle = c; x.fillRect(0, 0, W, H);
+    x.lineWidth = 16; x.strokeStyle = shade(c, 24); rbox(x, 8, top + 8, W - 16, H - top - 16, 34); x.stroke();
+    x.fillStyle = shade(c, -40); rbox(x, 58, top + 58, W - 116, H - top - 232, 20); x.fill();
+    picture(x, it.img, 64, top + 64, W - 128, H - top - 244, 15);
+    x.lineWidth = 3; x.strokeStyle = shade(c, 22); rbox(x, 58, top + 58, W - 116, H - top - 232, 20); x.stroke();
+    x.fillStyle = ink(c); x.textBaseline = "alphabetic"; fit(x, it.name, W - 480, 72); x.fillText(it.name, 64, H - 74);
+    x.font = FONT(500, 32); x.fillStyle = soft(c);
+    x.textAlign = "right"; x.fillText(it.year, W - 64, H - 78); x.textAlign = "left";
+  },
+};
+let style = "window", cut = "folder";
 function cover(i){
-  const W = 882, H = 600, c = document.createElement("canvas"); c.width = W; c.height = H;
-  const x = c.getContext("2d"), hue = HUES[i % HUES.length];
-  x.fillStyle = hue; x.fillRect(0, 0, W, H);
-  // the rim, lit
-  x.lineWidth = 14; x.strokeStyle = shade(hue, 26); round(x, 7, 7, W - 14, H - 14, 28); x.stroke();
-  // the recessed panel, a double frame like the crate's
-  x.fillStyle = shade(hue, -14); round(x, 40, 40, W - 80, H - 80, 16); x.fill();
-  x.lineWidth = 3; x.strokeStyle = shade(hue, -34); round(x, 40, 40, W - 80, H - 80, 16); x.stroke();
-  x.strokeStyle = shade(hue, 18); round(x, 52, 52, W - 104, H - 104, 10); x.stroke();
-  // a row of slots along the foot
-  for (let k = 0; k < 9; k++) {
-    x.fillStyle = shade(hue, -52); round(x, 84 + k * 34, 470, 15, 62, 5); x.fill();
+  const W = 1176, H = 800, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"), it = item(i);
+  const at = cut === "folder" ? [0, 0.5, 1][i % 3] : undefined;
+  const top = at === undefined ? 0 : Math.round(H * fold.tabHeight);
+  STYLES[style](x, it, W, H, top);
+  if (at !== undefined) {
+    // the tab: the item's colour (paper, for a label), its name, and where it sits
+    const tw = W * fold.tabWidth, run = W * fold.tabRun;
+    const x0 = at <= 0 ? 0 : run + at * (W - tw - run * 2);
+    const c0 = style === "label" ? "#F2EEE6" : it.hue;
+    x.fillStyle = c0; x.fillRect(0, 0, W, top + 2);
+    if (style === "label") { x.fillStyle = it.hue; x.fillRect(x0 - run, 0, tw + run * 2, 12); }
+    x.fillStyle = style === "label" ? "rgba(28,26,24,.9)" : ink(it.hue);
+    x.textBaseline = "middle"; x.textAlign = "center";
+    fit(x, it.name, tw - 60, 44, 600); x.fillText(it.name, x0 + tw / 2, top / 2 + 6);
+    x.textAlign = "left";
   }
-  x.fillStyle = "rgba(255,255,255,.95)";
-  x.font = "700 84px -apple-system, sans-serif"; x.textBaseline = "top";
-  x.fillText(NAMES[i % NAMES.length], 84, 88);
-  x.font = "500 34px -apple-system, sans-serif"; x.fillStyle = "rgba(255,255,255,.72)";
-  x.textAlign = "right"; x.fillText(String(i + 1).padStart(2, "0"), W - 84, 492); x.textAlign = "left";
-  return { image: c, aspect: W / H };
+  return { image: c, aspect: W / H, tab: at };
 }
 const covers = n => Array.from({ length: n }, (_, i) => cover(i));
 
@@ -168,14 +263,22 @@ function make(view, ready){
 function names(n){
   list.replaceChildren(...Array.from({ length: n }, (_, i) => {
     const li = document.createElement("li");
-    li.innerHTML = `<i style="background:${HUES[i % HUES.length]}"></i>${NAMES[i % NAMES.length]}`;
+    li.innerHTML = `<i style="background:${item(i).hue}"></i>${item(i).name}`;
     li.addEventListener("mouseenter", () => choose(i));
     return li;
   }));
   mark();
 }
-const mark = () => [...list.children].forEach((li, i) =>
+const mark = () => { [...list.children].forEach((li, i) =>
   li.setAttribute("aria-current", String(fold && i === fold.selected())));
+  flat(); };
+function flat(){
+  const c = $("flat"); if (!c || !fold || mode !== "records") return;
+  const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height);
+  x.drawImage(cover(fold.selected()).image, 0, 0);
+  document.querySelectorAll("#styles button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.style === style)));
+  document.querySelectorAll("#cuts button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.cut === cut)));
+}
 function choose(i){
   const n = list.children.length;
   i = Math.max(0, Math.min(n - 1, i));
@@ -253,7 +356,7 @@ const DO = {
   theme: () => document.body.classList.toggle("light"),
   copy(){
     const v = { fold: { pace: val("pace") }, present: { pace: val("openPace") },
-                records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, ...fold.tune?.() },
+                records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, item: style, cut, ...fold.tune?.() },
                 flight: { ms: val("flyMs"), dropMs: val("dropMs") } };
     navigator.clipboard.writeText(JSON.stringify(v, null, 2));
     $("copied").textContent = "Copied. Paste it to me and I will set these as the defaults.";
@@ -261,6 +364,12 @@ const DO = {
 };
 document.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.style || b.dataset.cut) {
+    style = b.dataset.style || style; cut = b.dataset.cut || cut;
+    const keep = fold.selected();
+    fold.setRecords(covers(val("n"))); fold.seek({ to: keep }); tuned();
+    return;
+  }
   if (b.dataset.mode) go(b.dataset.mode);
   else if (b.dataset.do) DO[b.dataset.do]();
   else if (b === mount && mode === "fold") fold.toggle();
@@ -305,5 +414,10 @@ addEventListener("keydown", e => { if (mode !== "records") return;
   if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); choose(fold.selected() - 1); } });
 addEventListener("resize", () => { if (fold) fold.resize(560); if (mode === "flight" && !flown) box(); });
 
-go(["fold", "open", "records", "flight"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "records");
+await pics;
+const want = location.hash.slice(1).split("/");
+if (STYLES[want[1]]) style = want[1];
+if (want[2] === "card" || want[2] === "folder") cut = want[2];
+go(["fold", "open", "records", "flight"].includes(want[0]) ? want[0] : "records");
+if (want[3]) { fold.seek({ to: parseInt(want[3], 10) }); mark(); }
 </script></body></html>

@@ -1,7 +1,16 @@
 export type CrateFoldState = "closed" | "folding" | "folded" | "unfolding" | "opening" | "open";
 
 /** A record: its cover, drawn by the page, and the cover's width over its height. */
-export type CrateRecord = { image: HTMLCanvasElement; aspect: number };
+export type CrateRecord = {
+  image: HTMLCanvasElement;
+  aspect: number;
+  /**
+   * Cut the record as a folder, with a tab standing up from its top edge. 0 is hard left, 1 hard
+   * right. The tab is the top `tabHeight` of the canvas and `tabWidth` of its width; draw the
+   * name there. Leave it out for a plain rounded card.
+   */
+  tab?: number;
+};
 
 /** A square on the screen, in CSS pixels. */
 export type CrateBox = { left: number; top: number; size: number };
@@ -123,6 +132,10 @@ export type CrateFoldHandle = {
     flight?: { to: CrateBox; k: number };
   }): void;
   dispose(): void;
+  /** The tab's share of a folder record's height and width, and its sloped run as a share of width */
+  tabHeight: number;
+  tabWidth: number;
+  tabRun: number;
   /** Length of the fold in milliseconds */
   duration: number;
   /** Length of present() at its own pace, in milliseconds */
