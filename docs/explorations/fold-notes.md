@@ -864,3 +864,30 @@ Compromises:
   back wall unless the crate is full.
 - The chosen record stands lifted with nothing holding it.
 - Records stand on the folded front wall, in the front 470 of the crate.
+
+## The record crate keeps its front (28 Sep 2026)
+
+Cameron: "The record should still have the front", and "the items in the
+crate should slide out upwards to be able to view the item. The styling of the
+items should be rounded and follow similar styling patterns."
+
+Why it matters: with the front folded away the crate stopped being the icon.
+The front wall is the identity of the piece, so the display state has to keep
+it.
+
+- `front: "up"` is now the default. The display crate is the whole crate, all
+  four walls standing. `front: "down"` keeps the earlier open-front version.
+- The chosen record slides straight up until the camera sees its foot over the
+  front wall. How far depends on how far back it stands, so each record has its
+  own lift. The front one comes right out of the crate.
+- Records sit back from the front wall so there is room to flip them forward;
+  the forward lean stops where a record would touch the inside of the wall
+  (22.7 degrees with six records).
+- Records are slabs cut to a rounded outline, not boxes.
+- The camera is higher (27 degrees) to see over the wall.
+
+Checked, front up: 176 frames of an interrupted hover, no two records cross;
+least gap to the front wall 1.4, between neighbours 67.8, to the back wall 160.
+Frame sheets of the flip from the front and the side, and of the flight.
+
+Compromise: the chosen record hangs above the crate with nothing holding it.

@@ -33,6 +33,14 @@ export type CrateFoldOptions = {
   view?: "front" | "above" | "records";
   /** The colour of a record's edges and back. Unlit, like its cover. */
   recordEdge?: number;
+  /** Corner radius of a record, in crate units. Default 30. */
+  recordRadius?: number;
+  /**
+   * What the display crate does with its front wall. "up" (the default) keeps it standing: the
+   * crate is still the icon, and the chosen record slides up out of it until its whole face
+   * shows over the wall. "down" folds it away and shows the records through the open front.
+   */
+  front?: "up" | "down";
 };
 
 export type CrateFoldHandle = {
@@ -93,7 +101,7 @@ export type CrateFoldHandle = {
   resize(size: number): void;
   /** Change how the records sit and lay them again. Returns the values in force. */
   tune(values?: { gap?: number; lift?: number; backLean?: number; forwardLean?: number }): {
-    gap: number; lift: number; backLean: number; forwardLean: number;
+    gap: number; lift: number; backLean: number; forwardLean: number; front: "up" | "down";
     forwardLeanActual: number; liftUnits: number;
   };
   /** For review: paint one instant. Nothing animates. */

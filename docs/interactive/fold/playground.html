@@ -63,7 +63,7 @@
   </section>
 
   <section id="open">
-   <p class="note">From folded flat: right, left, then back rise. The front stays down.</p>
+   <p class="note">From folded flat, the walls rise. With the front standing, all four; with it folded down, the front stays where it lies. Choose which on the Records tab.</p>
    <div class="row"><button data-do="raise">Raise the walls</button><button data-do="lower">Lower them</button></div>
    <h2>Frame by frame</h2>
    <label>Position <output id="openOut">0 ms</output><input id="openT" type="range" min="0" max="1290" step="5" value="0"></label>
@@ -76,13 +76,15 @@
   <section id="records">
    <p class="note">Hover a name, hover a record, scroll over the crate, or use the arrow keys.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
+   <h2>Front of the crate</h2>
+   <div class="row"><button data-do="frontUp">Standing</button><button data-do="frontDown">Folded down</button></div>
    <h2>Records</h2>
    <label>How many <output id="nOut">6</output><input id="n" type="range" min="1" max="12" step="1" value="6"></label>
    <label>Flip takes <output id="flipOut">260 ms</output><input id="flipMs" type="range" min="80" max="900" step="10" value="260"></label>
    <h2>How they sit</h2>
    <label>Gap between records <output id="gapOut">80</output><input id="gap" type="range" min="20" max="140" step="2" value="80"></label>
-   <label>Lift of the chosen one <output id="liftOut">30%</output><input id="lift" type="range" min="0" max="80" step="1" value="30"></label>
-   <label>Lean back <output id="backOut">24°</output><input id="back" type="range" min="0" max="45" step="1" value="24"></label>
+   <label>Extra lift of the chosen one <output id="liftOut">6%</output><input id="lift" type="range" min="0" max="80" step="1" value="6"></label>
+   <label>Lean back <output id="backOut">16°</output><input id="back" type="range" min="0" max="45" step="1" value="16"></label>
    <label>Lean forward, at most <output id="fwdOut">60°</output><input id="fwd" type="range" min="10" max="60" step="1" value="60"></label>
    <h2>Frame by frame</h2>
    <label>Flip from the record before <output id="kOut">100%</output><input id="k" type="range" min="0" max="1" step="0.01" value="1"></label>
@@ -117,27 +119,45 @@ const NAMES = ["Aura Cloud", "Charting study", "Crates", "Design system", "Omnim
 const HUES = ["#d8623f", "#3f7fd8", "#e6b53a", "#4fa36b", "#9a5fd0", "#d84f7c",
               "#3fb8c4", "#8a8f98", "#c98a3c", "#5a6fd8", "#7fae3f", "#b0567a"];
 
+// A cover in the crate's own vocabulary: a lit rim round the edge, a recessed panel inside it,
+// and a row of slots. The module cuts the rounded outline; this is only what is printed on it.
+function shade(hex, by){
+  const n = parseInt(hex.slice(1), 16);
+  const f = v => Math.max(0, Math.min(255, Math.round(v + by)));
+  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+}
+function round(x, X, Y, W, H, R){ x.beginPath(); x.roundRect(X, Y, W, H, R); }
 function cover(i){
-  const c = document.createElement("canvas"); c.width = 882; c.height = 600;
-  const x = c.getContext("2d");
-  x.fillStyle = HUES[i % HUES.length]; x.fillRect(0, 0, 882, 600);
-  x.fillStyle = "rgba(255,255,255,.94)";
-  x.font = "700 86px -apple-system, sans-serif"; x.textBaseline = "top";
-  x.fillText(NAMES[i % NAMES.length], 56, 52);
-  x.font = "500 34px -apple-system, sans-serif"; x.fillStyle = "rgba(255,255,255,.7)";
-  x.fillText(String(i + 1).padStart(2, "0"), 56, 520);
-  return { image: c, aspect: 882 / 600 };
+  const W = 882, H = 600, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"), hue = HUES[i % HUES.length];
+  x.fillStyle = hue; x.fillRect(0, 0, W, H);
+  // the rim, lit
+  x.lineWidth = 14; x.strokeStyle = shade(hue, 26); round(x, 7, 7, W - 14, H - 14, 28); x.stroke();
+  // the recessed panel, a double frame like the crate's
+  x.fillStyle = shade(hue, -14); round(x, 40, 40, W - 80, H - 80, 16); x.fill();
+  x.lineWidth = 3; x.strokeStyle = shade(hue, -34); round(x, 40, 40, W - 80, H - 80, 16); x.stroke();
+  x.strokeStyle = shade(hue, 18); round(x, 52, 52, W - 104, H - 104, 10); x.stroke();
+  // a row of slots along the foot
+  for (let k = 0; k < 9; k++) {
+    x.fillStyle = shade(hue, -52); round(x, 84 + k * 34, 470, 15, 62, 5); x.fill();
+  }
+  x.fillStyle = "rgba(255,255,255,.95)";
+  x.font = "700 84px -apple-system, sans-serif"; x.textBaseline = "top";
+  x.fillText(NAMES[i % NAMES.length], 84, 88);
+  x.font = "500 34px -apple-system, sans-serif"; x.fillStyle = "rgba(255,255,255,.72)";
+  x.textAlign = "right"; x.fillText(String(i + 1).padStart(2, "0"), W - 84, 492); x.textAlign = "left";
+  return { image: c, aspect: W / H };
 }
 const covers = n => Array.from({ length: n }, (_, i) => cover(i));
 
-let fold = null, mode = null, side = false, flown = false;
+let fold = null, mode = null, side = false, flown = false, frontWall = "up";
 const val = id => parseFloat($(id).value);
 
 function make(view, ready){
   if (fold) fold.dispose();
   mount.replaceChildren(); host.replaceChildren();
   side = false; flown = false;
-  fold = createCrateFold({ THREE, mount, size: 560, view, textures: TEX,
+  fold = createCrateFold({ THREE, mount, size: 560, view, front: frontWall, textures: TEX,
     onState: v => state.innerHTML = "Crate is <b>" + (WORDS[v] || v) + "</b>",
     onReady: () => ready && ready() });
   window.fold = fold;
@@ -159,12 +179,19 @@ function choose(i){
   if (i === fold.selected()) return;
   fold.select(i, val("flipMs")); mark();
 }
+// the two fronts sit their records differently, so each starts from its own values
+function defaults(){
+  const v = frontWall === "up" ? { lift: 6, back: 16 } : { lift: 30, back: 24 };
+  $("lift").value = v.lift; $("liftOut").textContent = v.lift + "%";
+  $("back").value = v.back; $("backOut").textContent = v.back + "°";
+}
 function tuned(){
   const v = fold.tune({ gap: val("gap"), lift: val("lift") / 100, backLean: val("back"), forwardLean: val("fwd") });
   $("tuned").textContent =
     `gap ${v.gap}   lift ${Math.round(v.lift * 100)}% (${v.liftUnits} units)\n` +
     `lean back ${v.backLean}°   lean forward ${v.forwardLeanActual}°` +
-    (v.forwardLeanActual < v.forwardLean - 0.05 ? "  (stopped by the rim)" : "") +
+    (v.forwardLeanActual < v.forwardLean - 0.05 ? (v.front === "up" ? "  (stopped by the front wall)" : "  (stopped by the rim)") : "") +
+    `\nfront ${v.front === "up" ? "standing" : "folded down"}` +
     `\nflip ${val("flipMs")} ms`;
   mark();
 }
@@ -172,7 +199,8 @@ function tuned(){
 const MODES = {
   fold(){ list.style.display = "none"; target.style.display = "none"; make("front"); },
   open(){ list.style.display = "none"; target.style.display = "none";
-          make("above", () => fold.set(1)); fold.set(1); },
+          make("above", () => fold.set(1)); fold.set(1);
+          $("openT").max = frontWall === "up" ? 1890 : 1290; },
   records(){ list.style.display = "block"; target.style.display = "none";
              make("records"); fold.setRecords(covers(val("n"))); names(val("n")); tuned(); },
   flight(){ list.style.display = "none"; make("above", () => fold.set(1)); fold.set(1); box(); },
@@ -201,13 +229,15 @@ const DO = {
   camAbove: () => make("above", () => { fold.setOpenFront(); }) || fold.setOpenFront(),
   camRecords: () => make("records"),
   drop: () => { fold.dropRecords(covers(val("n")), 700).then(mark); },
+  frontUp: () => { frontWall = "up"; defaults(); go(mode); },
+  frontDown: () => { frontWall = "down"; defaults(); go(mode); },
   side: () => { side = !side; fold.__camera(side ? "side" : null); },
   async fly(){
     if (flown) return;
     flown = true;
     fold.takeover(host, mount.getBoundingClientRect());
     await fold.flyTo(box(), val("flyMs"));
-    await fold.dropRecords(covers(6), val("dropMs"), 0);
+    await fold.dropRecords(covers(6), val("dropMs"), 2);
   },
   flyReset: () => go("flight"),
   theme: () => document.body.classList.toggle("light"),
@@ -233,7 +263,9 @@ show("pace", "paceOut", v => v + " ms"); show("openPace", "openPaceOut", v => v 
 show("flipMs", "flipOut", v => v + " ms"); show("flyMs", "flyOut", v => v + " ms");
 show("dropMs", "dropOut", v => v + " ms");
 $("foldT").addEventListener("input", () => { $("foldOut").textContent = val("foldT") + " ms"; fold.set(val("foldT") / 1890); });
-$("openT").addEventListener("input", () => { $("openOut").textContent = val("openT") + " ms"; fold.seek({ present: Math.max(0.0001, val("openT") / 1290) }); });
+$("openT").addEventListener("input", () => { $("openOut").textContent = val("openT") + " ms";
+  if (frontWall === "up") fold.set(1 - val("openT") / 1890);
+  else fold.seek({ present: Math.max(0.0001, val("openT") / 1290) }); });
 for (const [ms, name] of [[0, "rest"], [130, "squeezed"], [240, "free"], [760, "front down"], [1400, "back down"], [1890, "flat"]]) {
   const b = document.createElement("button"); b.textContent = name;
   b.addEventListener("click", () => { $("foldT").value = ms; $("foldT").dispatchEvent(new Event("input")); });

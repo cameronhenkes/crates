@@ -29,6 +29,7 @@ import { createCrateFold } from "./crate-fold.js";
 const q = new URLSearchParams(location.search);
 const b = document.getElementById("b"), s = document.getElementById("s");
 const view = q.get("view") || "front";
+const frontWall = q.get("front") || "up";
 const HUES = ["#d8623f", "#3f7fd8", "#e6b53a", "#4fa36b", "#9a5fd0", "#d84f7c", "#3fb8c4", "#8a8f98"];
 function cover(i){
   const c = document.createElement("canvas"); c.width = 882; c.height = 600;
@@ -41,7 +42,7 @@ function cover(i){
   return {image: c, aspect: c.width / c.height};
 }
 const n = parseInt(q.get("n") || "0", 10);
-const fold = createCrateFold({ THREE, mount: b, size: 520, view,
+const fold = createCrateFold({ THREE, mount: b, size: 520, view, front: frontWall,
   textures: { "front.png": "tex/front.png", "back.png": "tex/back.png",
               "side.png": "tex/side.png", "floor.png": "tex/floor.png" },
   onState: v => s.textContent = v,
@@ -93,29 +94,11 @@ if (probe === "logic") {
   out.pickCorner = fold.pick(r.left + 4, r.top + 4);
   let queue = [], now = 1000;
   window.requestAnimationFrame = f => (queue.push(f), 0);
-  const Z0 = 398, GAP = 80, HT = 760 / (882 / 600), T = 6, BASE = 43;
-  const BACK = -455.5, RIM = {z: 469, y: 80};
   let frames = 0, order = 0, backGap = 1e9, rimGap = 1e9, neighbour = 1e9;
   const check = () => {
-    const a = fold.__angles(); frames++;
-    a.forEach(([ang, up], i) => {
-      const z = Z0 - i * GAP;
-      if (i) order = Math.max(order, ang - a[i - 1][0]);
-      // the far top corner against the back wall
-      backGap = Math.min(backGap, z + (HT + up) * Math.sin(ang) - T / 2 - BACK,
-                                  z + up * Math.sin(ang) - T / 2 - BACK);
-      // the lower face against the rim of the base, for anything leaning over it
-      if (ang > 0) rimGap = Math.min(rimGap,
-        (RIM.z - z) * Math.cos(ang) - (RIM.y - BASE) * Math.sin(ang) - T / 2);
-      // face to face with the record in front, measured at both ends of this one
-      if (i) {
-        const [pa, pu] = a[i - 1], pz = Z0 - (i - 1) * GAP;
-        for (const s of [up, up + HT]) {
-          const qz = z + s * Math.sin(ang), qy = s * Math.cos(ang);
-          neighbour = Math.min(neighbour, (pz - qz) * Math.cos(pa) + qy * Math.sin(pa) - T);
-        }
-      }
-    });
+    const g = fold.__gaps(); frames++;
+    order = Math.max(order, g.order); backGap = Math.min(backGap, g.backGap);
+    rimGap = Math.min(rimGap, g.frontGap); neighbour = Math.min(neighbour, g.neighbour);
   };
   const script = {0: 5, 88: 0, 168: 3, 296: 4, 336: 1, 376: 5, 696: 2};   // multiples of 8
   out.selects = 0;
@@ -128,7 +111,7 @@ if (probe === "logic") {
   out.frames = frames;
   out.orderViolation = +order.toFixed(6);
   out.leastGapToBackWall = +backGap.toFixed(1);
-  out.leastGapToRim = +rimGap.toFixed(1);
+  out.leastGapToFront = +rimGap.toFixed(1);
   out.leastGapBetweenNeighbours = +neighbour.toFixed(1);
   out.settledOn = fold.selected();
   out.final = fold.__angles().map(v => [+(v[0] * 180 / Math.PI).toFixed(1), +v[1].toFixed(1)]);
