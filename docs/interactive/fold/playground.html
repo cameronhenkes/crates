@@ -87,8 +87,8 @@
    <h2>How they sit</h2>
    <label>Gap between records <output id="gapOut">134</output><input id="gap" type="range" min="20" max="140" step="2" value="134"></label>
    <label>Extra lift of the chosen one <output id="liftOut">61%</output><input id="lift" type="range" min="0" max="80" step="1" value="61"></label>
-   <label>Lean back <output id="backOut">21°</output><input id="back" type="range" min="0" max="45" step="1" value="21"></label>
-   <label>Lean forward, at most <output id="fwdOut">27°</output><input id="fwd" type="range" min="10" max="60" step="1" value="27"></label>
+   <label>Lean back <output id="backOut">23°</output><input id="back" type="range" min="0" max="45" step="1" value="23"></label>
+   <label>Lean forward, at most <output id="fwdOut">38°</output><input id="fwd" type="range" min="10" max="60" step="1" value="38"></label>
    <h2>Frame by frame</h2>
    <label>Flip from the record before <output id="kOut">100%</output><input id="k" type="range" min="0" max="1" step="0.01" value="1"></label>
    <pre id="tuned"></pre>
@@ -184,7 +184,7 @@ function choose(i){
 }
 // the two fronts sit their records differently, so each starts from its own values
 function defaults(){
-  const v = frontWall === "up" ? { lift: 61, back: 21, gap: 134, fwd: 27, flip: 700 }
+  const v = frontWall === "up" ? { lift: 61, back: 23, gap: 134, fwd: 38, flip: 700 }
                                : { lift: 30, back: 24, gap: 80, fwd: 60, flip: 260 };
   $("lift").value = v.lift; $("liftOut").textContent = v.lift + "%";
   $("back").value = v.back; $("backOut").textContent = v.back + "°";

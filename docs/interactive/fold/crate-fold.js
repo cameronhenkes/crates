@@ -619,7 +619,7 @@ const WALL_IN = END_Z - TH / 2;             // the front wall's inner face
 const WALL_TOP = H;                         // its highest point, the tab
 // What a designer would want to try by hand: tune() changes these and lays the records again.
 // Front up, these are Cameron's, set by hand in the playground on 28 Sep 2026.
-const TUNE = UP ? {gap: 134, lift: 0.61, backLean: 21, forwardLean: 27}
+const TUNE = UP ? {gap: 134, lift: 0.61, backLean: 23, forwardLean: 38}
                 : {gap: 80, lift: 0.30, backLean: 24, forwardLean: 60};
 const FLIP_MS = UP ? 700 : 260;
 let listed = [];
