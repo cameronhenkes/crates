@@ -75,7 +75,10 @@ export type CrateFoldHandle = {
   set(position: number): void;
   /** Play the fold to a position over a given time. Resolves when it arrives. */
   play(position: number, ms: number): Promise<void>;
-  /** Move the canvas into a full-screen host with the crate still drawn at `rect`. */
+  /**
+   * Move the canvas into a full-screen host with the crate still drawn at `rect`. `rect` is the
+   * canvas's own box: square for "front" and "above", portrait for "records".
+   */
   takeover(host: HTMLElement, rect: DOMRect): void;
   /** After takeover: fly down into the crate until its floor fills the screen. */
   dolly(ms: number): Promise<void>;
@@ -131,6 +134,14 @@ export type CrateFoldHandle = {
    */
   flyTo(to: CrateBox, ms: number, options?: { open?: boolean }): Promise<void>;
   /**
+   * After takeover: the reverse of flyTo(). Carry the display crate back to a SQUARE slot on the
+   * shelf and bring the camera back to the view from above. The items leave first, up and out
+   * of the top of the window, and are removed when it resolves. With `fold` (the default) the
+   * crate arrives folded flat. Works on a crate painted in view "records" or one flown there.
+   * Under about 1100ms it reads as hurried: the fold alone is 1.9s at its own pace.
+   */
+  flyBack(to: CrateBox, ms: number, options?: { fold?: boolean }): Promise<void>;
+  /**
    * The canvas box changed size. Pass the new size in CSS pixels. After takeover it re-reads
    * the window instead, so call it from a resize listener too.
    */
@@ -148,6 +159,7 @@ export type CrateFoldHandle = {
     k?: number;
     drop?: number;
     flight?: { to: CrateBox; k: number };
+    back?: { to: CrateBox; k: number; fold?: boolean };
   }): void;
   dispose(): void;
   /** The tab's share of a folder record's height and width, and its sloped run as a share of width */

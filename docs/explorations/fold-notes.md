@@ -1069,3 +1069,26 @@ The rule is relative to the crate: a sage crate holds darker sage items.
 
 Cameron then took the darkness to 70% himself ("go darker", then the slider):
 the items are #3a1d17 before lighting. That is the default.
+
+## The way back to the shelf (28 Sep 2026)
+
+Cameron, on switching between collections: "the user zooms out to reveal the
+crate, crate closes before then the select crate animates opens before they
+then zoom back in." He chose the shelf of four.
+
+`flyBack(slot, ms, {fold})` is the reverse of `flyTo`: from the records frame
+to a square slot on the shelf, camera back up to the view from above, folded
+flat on arrival.
+
+- The items leave first, up and out of the top of the window, the way they
+  came. The walls cannot fold with anything standing between them, so the
+  walls do not start until 40% through, by which time the items are clear.
+- The items gather speed. On the house curve, which starts fast, they were
+  gone inside one frame; the frame review showed a crate that was full at 0 ms
+  and empty at 100. That is disappearing by another name. They now lift, are
+  seen to lift, and then go.
+- `takeover()` now accepts the portrait canvas of a crate painted in the
+  records view, as the square as tall as it is. Painted and taken over differ
+  only in edge antialiasing.
+- The fold alone is 1.9 s at its own pace. Under about 1100 ms the return
+  reads as hurried.

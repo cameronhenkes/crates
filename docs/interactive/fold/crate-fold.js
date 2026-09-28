@@ -439,7 +439,9 @@ function apply(t){
   const m = house(camMix);
   // A crate flown here is drawn in a square that grows to the portrait frame's height, so its
   // angle of view opens as it travels; one painted here has the portrait frame from the start.
-  const shape = ASPECT !== 1 ? ASPECT : 1 + (recordsAspect - 1) * m;
+  // Once taken over, a crate painted in the records view is drawn in a square too, so it can
+  // close its angle of view again on the way back to the shelf.
+  const shape = (ASPECT !== 1 && !box) ? ASPECT : 1 + (recordsAspect - 1) * m;
   camera.fov = 2 * Math.atan(Math.tan(FOV * Math.PI / 360) / shape) * 180 / Math.PI;
   camera.updateProjectionMatrix();
   const mix = (a, b) => a + (b - a) * m;
@@ -559,9 +561,11 @@ function takeover(host, rect){
   renderer.setSize(vw, vh, false);
   renderer.domElement.style.cssText = "display:block;width:100%;height:100%";
   camera.aspect = 1;
-  view0 = {s: rect.width, x: rect.left, y: rect.top, vw, vh};
+  // A portrait frame becomes the square as tall as it is, centred on it: the same picture.
+  const side = Math.max(rect.width, rect.height);
+  view0 = {s: side, x: rect.left - (side - rect.width) / 2, y: rect.top, vw, vh};
   box = {...view0};
-  camera.setViewOffset(rect.width, rect.width, -rect.left, -rect.top, vw, vh);
+  camera.setViewOffset(view0.s, view0.s, -view0.x, -view0.y, vw, vh);
   camera.updateProjectionMatrix();
   apply(t);
 }
@@ -905,6 +909,48 @@ function flyTo(to, ms, {open = true} = {}){
     apply(t);
   }).then(() => { view0 = {...box}; settled(); });
 }
+/** After takeover: the reverse of flyTo. Carry the display crate back to a square slot on the
+ *  shelf, bringing the camera back up to the view from above. The items leave first, drawn up
+ *  and out of the top of the window the way they came, because the walls cannot fold with
+ *  anything standing between them. With `fold` it arrives folded flat, as it rests on the shelf.
+ *
+ *  The fold alone is 1.9s at its own pace. Under about 1100ms this reads as hurried. */
+const BACK_ITEMS = 0.5, BACK_WALLS = 0.4;     // items are clear by 0.4; the walls start then
+function backPlan(to, fold){
+  // how far an item has to rise to be off the top of the window once the crate is on the shelf
+  const span = 2 * 4300 * Math.tan(FOV * Math.PI / 360);           // units across the slot
+  const rise = (to.top + to.size) * span / (to.size * Math.cos(49 * Math.PI / 180));
+  return {to, fold, b0: {...box}, c0: camMix, t0: t, p0: pq,
+          rise: Math.max(1500, rise * 1.2), ups: records.map(r => r.up)};
+}
+function backPose(plan, k){
+  const e = house(k), {to, b0} = plan;
+  box.s = b0.s + (to.size - b0.s) * e;
+  box.x = b0.x + (to.left - b0.x) * e;
+  box.y = b0.y + (to.top - b0.y) * e;
+  camMix = plan.c0 * (1 - k);
+  // Gathering speed, not shot out: on the house curve they were gone inside one frame, which
+  // is disappearing by another name. They lift, are seen to lift, and then go.
+  const u = clamp01(k / BACK_ITEMS), out = u * u;
+  for (const [i, r] of records.entries()) { r.up = plan.ups[i]; r.drop = plan.rise * out; }
+  settle();
+  if (plan.fold) {
+    const w = clamp01((k - BACK_WALLS) / (1 - BACK_WALLS));
+    if (UP) t = target = plan.t0 + (1 - plan.t0) * w; else pq = plan.p0 * (1 - w);
+  }
+  apply(t);
+}
+function flyBack(to, ms, {fold = true} = {}){
+  if (!box) throw new Error("flyBack needs takeover() first");
+  if (raf) { cancelAnimationFrame(raf); raf = null; last = 0; }
+  ++flip;                                  // a flip in progress stops here
+  const plan = backPlan(to, fold);
+  if (fold) onState("folding");
+  return tween(ms, k => backPose(plan, k)).then(() => {
+    setRecords([]);                        // they are off the top of the window by now
+    sel = -1; view0 = {...box}; settled();
+  });
+}
 /** The box the canvas is drawn into has changed size. */
 function resize(px){
   if (box) {
@@ -960,7 +1006,7 @@ function __gaps(){
   });
   return {order, neighbour, frontGap, backGap};
 }
-function seek({present: q, from, to, k = 1, flight, drop} = {}){
+function seek({present: q, from, to, k = 1, flight, drop, back} = {}){
   if (q !== undefined) { t = target = 1; pq = q; }
   if (flight && view0) {                 // {to: {left, top, size}, k}: the flight at k
     const e = house(flight.k);
@@ -981,6 +1027,11 @@ function seek({present: q, from, to, k = 1, flight, drop} = {}){
     sel = to;
   }
   if (drop !== undefined && records.length) dropPose(drop);
+  if (back && box) {                     // {to, k, fold}: flyBack at k, from where it stands now
+    seek.plan ??= backPlan(back.to, back.fold ?? true);
+    backPose(seek.plan, back.k);
+    return;
+  }
   apply(t);
 }
 
@@ -1000,6 +1051,6 @@ manager.onLoad = () => { if (!dead) { apply(t); onReady(); } };
 apply(t);
 if (view === "records") settled();
 return { toggle, set, play, takeover, dolly, land, setPrints,
-         setOpenFront, present, setRecords, dropRecords, select, selected, pick, through, outline, flyTo, resize, tune, seek, __camera, __angles, __gaps,
+         setOpenFront, present, setRecords, dropRecords, select, selected, pick, through, outline, flyTo, flyBack, resize, tune, seek, __camera, __angles, __gaps,
          dispose, aspect: ASPECT, recordsAspect, tabHeight: TAB_H, tabWidth: TAB_W, tabRun: TAB_RUN / REC_W, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
 }
