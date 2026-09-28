@@ -77,7 +77,7 @@
    <p class="note">Hover a name, hover a record, scroll over the crate, or use the arrow keys.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
-   <p class="note">A folder in one of the icon's colours. No picture, no words. The list names it.</p>
+   <p class="note">A folder in one of the icon's colours, never the crate's own. No picture, no words. The list names it.</p>
    <div class="row" id="styles"><button data-style="blank">Plain</button><button data-style="moulded">Moulded like the crate</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
    <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
@@ -132,11 +132,18 @@ const ITEMS = [
   { name: "Sesame", line: "Proving demand before building", year: "2021 – 2022", tags: ["Growth", "A/B testing"], hue: "#C6BFD8" },
   { name: "AI Digital Advisor", line: "From POC to production for 4.5M users", year: "2025", tags: ["Multi-agent", "Guardrails"], hue: "#E8B69B" },
 ];
-const MORE = ["#9E9B63", "#EEDFA6", "#C7C7C1", "#EBE9E3", "#55565A", "#3A3A3C"];
+// An item is never the crate's colour, nor one close enough to be mistaken for it: a folder
+// that matches the crate reads as part of the crate. The icon's palette, less those.
+const CRATE = "#C0614B";
+const PALETTE = ["#C3D2E1", "#9EB29A", "#C6BFD8", "#EEDFA6", "#E8B69B", "#9E9B63",
+                 "#C7C7C1", "#D79A4D", "#EBE9E3", "#55565A", "#3A3A3C", "#C0614B"];
+const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const apart = (a, b) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
+const ALLOWED = PALETTE.filter(c => apart(c, CRATE) > 70);
 const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
-                     hue: i < ITEMS.length ? ITEMS[i].hue : MORE[(i - ITEMS.length) % MORE.length] });
+                     hue: ALLOWED[i % ALLOWED.length] });
 const NAMES = ITEMS.map(v => v.name);
-const HUES = Array.from({ length: 12 }, (_, i) => i < 6 ? ITEMS[i].hue : MORE[i - 6]);
+const HUES = Array.from({ length: 12 }, (_, i) => ALLOWED[i % ALLOWED.length]);
 const PICS = [];
 const pics = Promise.all(ITEMS.map((_, i) => new Promise(done => {
   const im = new Image(); im.onload = () => { PICS[i] = im; done(); }; im.onerror = () => done();

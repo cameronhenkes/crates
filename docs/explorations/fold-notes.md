@@ -971,3 +971,14 @@ looked stuck on.
 - Each item's edges are its own colour, not card.
 - Extra lift default dropped from 61% to 18%: a larger item with the same lift
   leaves the frame. The camera came in closer with the room that freed.
+
+## An item is never the crate's colour (28 Sep 2026)
+
+Cameron: "We need to ensure we're not using the same colour as the crate."
+
+Why: a folder that matches the crate reads as part of the crate, not as
+something in it. The first item had been rust in a rust crate.
+
+Rule: items take the icon's palette less the crate's own colour and anything
+close enough to be mistaken for it. With a rust crate that drops rust and
+ochre. The rule is relative to the crate, so a sage crate drops sage.
