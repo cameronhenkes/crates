@@ -77,8 +77,8 @@
    <p class="note">Hover a name or move through the crate. Move away and they all sit back down. Scroll and arrow keys work too; Escape puts them back.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
-   <p class="note">A folder in one of the icon's hues, never the crate's own: deep on a dark page, pale on a light one. No picture, no words. The list names it.</p>
-   <div class="row" id="styles"><button data-style="blank">Plain</button><button data-style="moulded">Moulded like the crate</button></div>
+   <p class="note">A folder in one of the icon's hues, never the crate's own: pale on a dark page, deep on a light one. No picture, no words. The list names it.</p>
+   <div class="row" id="styles"><button data-style="moulded">Moulded like the crate</button><button data-style="blank">Plain</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
    <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
    <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
@@ -151,11 +151,14 @@ const hsl = hex => { let [r, g, b] = rgb(hex).map(v => v / 255);
 const hex = (hh, s, l) => { const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((hh / 60) % 2 - 1)), m = l - c / 2;
   const [r, g, b] = hh < 60 ? [c, x, 0] : hh < 120 ? [x, c, 0] : hh < 180 ? [0, c, x] : hh < 240 ? [0, x, c] : hh < 300 ? [x, 0, c] : [c, 0, x];
   return "#" + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join(""); };
-const TONES = { dark: { l: [0.30, 0.40], s: v => Math.min(0.62, v * 1.1 + 0.06) },
+const TONES = { deep: { l: [0.30, 0.40], s: v => Math.min(0.62, v * 1.1 + 0.06) },
                 // pale, but with enough colour left to tell six of them apart once they are shaded
-                light: { l: [0.86, 0.93], s: v => Math.min(0.85, v * 1.2 + 0.12) } };
+                pale: { l: [0.86, 0.93], s: v => Math.min(0.85, v * 1.2 + 0.12) } };
+// Against the page, not with it: pale items on a dark page, deep items on a light one, so the
+// items are what stands out.
+const against = () => tone === "dark" ? "pale" : "deep";
 let tone = "dark";
-function toned(c, which = tone){
+function toned(c, which = against()){
   const [hh, s, l] = hsl(c), t = TONES[which];
   // keep each hue's place in the order of lightness, inside the band for this page
   return hex(hh, s < 0.04 ? s : t.s(s), t.l[0] + (t.l[1] - t.l[0]) * l);
@@ -261,7 +264,7 @@ const STYLES = {
     x.restore();
   },
 };
-let style = "blank", cut = "folder";
+let style = "moulded", cut = "folder";
 function cover(i){
   const W = 1176, H = 894, c = document.createElement("canvas"); c.width = W; c.height = H;
   const x = c.getContext("2d"), it = item(i);
@@ -323,7 +326,7 @@ function defaults(){
 }
 function tuned(){
   const v = fold.tune({ gap: val("gap"), lift: val("lift") / 100, backLean: val("back"), forwardLean: val("fwd"),
-                        gain: tone === "light" ? 1.7 : 1 });
+                        gain: against() === "pale" ? 1.7 : 1 });
   $("tuned").textContent =
     `gap ${v.gap}${v.gapActual < v.gap ? " (" + v.gapActual + " fits)" : ""}   lift ${Math.round(v.lift * 100)}% (${v.liftUnits} units)\n` +
     `lean back ${v.backLean}°   lean forward ${v.forwardLeanActual}°` +
@@ -392,7 +395,7 @@ const DO = {
   theme: () => setTheme(tone === "dark" ? "light" : "dark"),
   copy(){
     const v = { fold: { pace: val("pace") }, present: { pace: val("openPace") },
-                page: tone, items: ALLOWED.slice(0, val("n")),
+                page: tone, tone: against(), items: ALLOWED.slice(0, val("n")),
                 records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, item: style, cut, ...fold.tune?.() },
                 flight: { ms: val("flyMs"), dropMs: val("dropMs") } };
     navigator.clipboard.writeText(JSON.stringify(v, null, 2));

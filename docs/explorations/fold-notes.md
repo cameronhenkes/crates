@@ -1025,3 +1025,23 @@ dark page they glare; on a light page the deep ones punch holes in it.
 First attempt at the light page made every item the same grey: I was filtering
 against a retoned crate colour, and every pale colour is close to a pale
 pink. Caught in the render.
+
+## Correction: items go against the page, and are moulded (28 Sep 2026)
+
+Cameron, after seeing deep-on-dark and pale-on-light: "invert the colour
+directions for light mode vs. dark mode." Then: "I like the moulded like the
+crate effect. Let's go with this too."
+
+I had read his earlier note literally and matched the items to the page. Seen
+on screen, matched items sink into it. Against the page, the items are what
+stands out, and the crate, which keeps its own colour, sits between the two.
+
+- Dark page: pale items, gain 1.7.
+- Light page: deep items, gain 1.
+- Moulded is the item style: the crate's recessed panel, two rows of slots and
+  a foot rail, pressed into a folder of the item's colour. Plain stays as the
+  alternative.
+
+The section above, "Item colours follow the page", describes the direction he
+rejected. Its mechanism (retoning, gain, keeping away from the crate's colour)
+still stands.
