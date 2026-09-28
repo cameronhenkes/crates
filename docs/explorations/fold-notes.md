@@ -1092,3 +1092,26 @@ flat on arrival.
   only in edge antialiasing.
 - The fold alone is 1.9 s at its own pace. Under about 1100 ms the return
   reads as hurried.
+
+## The chosen item carries its logo (28 Sep 2026)
+
+Cameron, via the portfolio: "For the selected item, I want the current
+selected item to have the logo within the crate selected item. And colourise
+it to match the branding of the item."
+
+This brings a mark back onto an item, for the chosen one only. The others stay
+plain. The portfolio draws the faces; the module needed a way to change one
+face without laying everything again.
+
+`updateRecord(index, record, {now})` swaps a record's face and edge colour in
+place. Nothing moves.
+
+The question was when. A face changing while you look at it is a pop, and a
+cross-dissolve is opacity covering a transition. So the change waits: if the
+record is raised, it happens once the record is back down in the crate, behind
+the front wall and in its shadow. If it is already down, it happens at once.
+The portfolio brands the new item before raising it and un-brands the old one
+as it asks for it; the module holds that second change until the old one has
+come down. `now: true` overrides, for a logo that loads late.
+
+The new face must have the same tab and aspect. The outline is cut once.

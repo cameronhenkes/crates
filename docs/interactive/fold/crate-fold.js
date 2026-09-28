@@ -724,7 +724,7 @@ function setRecords(list){
     scene.add(pivot);
     const mats = [];
     pivot.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) mats.push({m, base: m.color.clone()}); });
-    return {pivot, mesh, h, mats, i, ang: 0, up: 0, drop: 0, a0: 0, u0: 0, a1: 0, u1: 0};
+    return {pivot, mesh, h, w, face, mats, i, tab: it.tab, aspect: it.aspect, pending: null, ang: 0, up: 0, drop: 0, a0: 0, u0: 0, a1: 0, u1: 0};
   });
   // Forward lean: as far as the front record can go before it meets something. Front down that
   // is the rim of the base, which it rests on. Front up it is the inside of the front wall.
@@ -801,7 +801,36 @@ function settle(){
     place(r);
   }
 }
-function place(r){
+// Change what is printed on one record, in place: nothing is laid again and nothing moves.
+// A face cannot change while you are looking at it, so unless told otherwise the change waits
+// until the record is down in the crate, behind the front wall and in its shadow. Asked for on
+// a record that is already down, it happens at once.
+const SWAP_BELOW = 0.12;                  // of its lift: low enough to count as down
+function swapFace(r){
+  const {record: it} = r.pending; r.pending = null;
+  const tex = new THREE.CanvasTexture(it.image);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.repeat.set(1 / r.w, 1 / r.h);
+  if (r.face.map) r.face.map.dispose();
+  r.face.map = tex; r.face.needsUpdate = true;
+  if (it.edge !== undefined)
+    for (const x of r.mats) if (x.m !== r.face) x.base.set(it.edge);
+}
+function updateRecord(index, record, {now = false} = {}){
+  const r = records[index];
+  if (!r) return false;
+  // the outline is cut once; a face for a different outline would not fit it
+  if (record.tab !== r.tab || Math.abs(record.aspect - r.aspect) > 0.001)
+    throw new Error("updateRecord: the new face must have the same tab and aspect as the record it replaces");
+  r.pending = {record};
+  if (listed[index]) listed = listed.map((v, i) => i === index ? record : v);
+  place(r, now);
+  apply(t);
+  return !r.pending;                      // true: changed now. false: waiting for it to come down
+}
+function place(r, force = false){
+  if (r.pending && (force || r.up + r.drop <= (lifts[r.i] ?? lift) * SWAP_BELOW)) swapFace(r);
   r.pivot.rotation.x = r.ang;
   r.mesh.position.y = r.h / 2 + r.up + r.drop;
   if (recordLit) {
@@ -1051,6 +1080,6 @@ manager.onLoad = () => { if (!dead) { apply(t); onReady(); } };
 apply(t);
 if (view === "records") settled();
 return { toggle, set, play, takeover, dolly, land, setPrints,
-         setOpenFront, present, setRecords, dropRecords, select, selected, pick, through, outline, flyTo, flyBack, resize, tune, seek, __camera, __angles, __gaps,
+         setOpenFront, present, setRecords, dropRecords, select, selected, updateRecord, pick, through, outline, flyTo, flyBack, resize, tune, seek, __camera, __angles, __gaps,
          dispose, aspect: ASPECT, recordsAspect, tabHeight: TAB_H, tabWidth: TAB_W, tabRun: TAB_RUN / REC_W, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
 }

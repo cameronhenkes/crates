@@ -103,6 +103,15 @@ export type CrateFoldHandle = {
    */
   setRecords(records: CrateRecord[]): void;
   /**
+   * Change what is printed on one record, and its edge colour, in place. Nothing is laid again
+   * and nothing moves. The new record must have the same `tab` and `aspect`.
+   *
+   * A face does not change while it is on show: if the record is raised, the change waits until
+   * it is back down in the crate, and happens at once if it is already down. Returns true when
+   * it changed now, false when it is waiting. `now: true` changes it wherever it is.
+   */
+  updateRecord(index: number, record: CrateRecord, options?: { now?: boolean }): boolean;
+  /**
    * Put records into a crate already on screen: lowered in from above, upright, back one first,
    * then flipped to `then` (default: the current selection).
    */

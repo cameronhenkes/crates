@@ -50,6 +50,7 @@ const fold = createCrateFold({ THREE, mount: b, size: 520, view, front: frontWal
     if (q.has("t")) fold.set(parseFloat(q.get("t")));
     if (q.has("present")) fold.seek({present: parseFloat(q.get("present"))});
     if (q.get("cam")) fold.__camera(q.get("cam"));
+    if (q.has("swap")) fold.updateRecord(parseInt(q.get("swap"), 10), cover(7), {now: q.has("now")});
     fold.seek({});
   } });
 if (n) {
@@ -126,6 +127,17 @@ if (probe === "logic") {
     for (const f of run) f(now + ms);
     check();
   }
+  // a face changes only when its record is down
+  fold.seek({to: 2});
+  out.swapRaisedWaits = fold.updateRecord(2, cover(7)) === false;
+  out.swapDownIsImmediate = fold.updateRecord(4, cover(6)) === true;
+  out.swapForced = fold.updateRecord(2, cover(5), {now: true}) === true;
+  fold.updateRecord(2, cover(7));
+  fold.select(-1);
+  for (let ms = 1408; ms <= 2400; ms += 8) { const run = queue; queue = []; for (const f of run) f(now + ms); }
+  out.swapHappenedOnceDown = fold.updateRecord(2, cover(7)) === true;
+  try { fold.updateRecord(1, {...cover(1), aspect: 2}); out.swapWrongShape = "accepted"; }
+  catch { out.swapWrongShape = "refused"; }
   out.frames = frames;
   out.orderViolation = +order.toFixed(6);
   out.leastGapToBackWall = +backGap.toFixed(1);
