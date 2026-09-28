@@ -951,3 +951,23 @@ So an item is a folder in one of the icon's colours: one fill, one lit rim
 round the whole silhouette with no seam at the tab, and nothing printed on it.
 The list beside the crate names the projects. Two variants remain: plain, and
 moulded with the crate's recessed panel and slots.
+
+## Items take the crate's light (28 Sep 2026)
+
+Cameron: the items need to be larger, and "the colours of the item don't align
+with the colour shading of the crate. There is obvious shadowing occurring" on
+the crate that the items did not share.
+
+Cause: the items were unlit, drawn in their own pixels, because covers with
+pictures had to match the page. The crate is lit. Side by side, the items
+looked stuck on.
+
+- Items are lit by the crate's lamps (`recordLit`, default true), so a colour
+  on an item is shaded as that colour would be on the crate.
+- An item down in the crate is in its shadow and comes into the light as it
+  rises. Shading tied to position, as with the crate's interior.
+- Items are 840 wide (were 760) in the icon's own proportions, and stand a
+  little proud of the walls.
+- Each item's edges are its own colour, not card.
+- Extra lift default dropped from 61% to 18%: a larger item with the same lift
+  leaves the frame. The camera came in closer with the room that freed.

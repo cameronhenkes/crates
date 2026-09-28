@@ -80,7 +80,7 @@
    <p class="note">A folder in one of the icon's colours. No picture, no words. The list names it.</p>
    <div class="row" id="styles"><button data-style="blank">Plain</button><button data-style="moulded">Moulded like the crate</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
-   <canvas id="flat" width="1176" height="800" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
+   <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
    <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
    <h2>Moving the cursor through the crate</h2>
    <div class="row"><button data-do="axDepth">Front to back</button><button data-do="axAcross">Left to right</button><button data-do="axPick">Touch a record</button></div>
@@ -92,7 +92,7 @@
    <label>Flip takes <output id="flipOut">700 ms</output><input id="flipMs" type="range" min="80" max="1500" step="10" value="700"></label>
    <h2>How they sit</h2>
    <label>Gap between records <output id="gapOut">134</output><input id="gap" type="range" min="20" max="140" step="2" value="134"></label>
-   <label>Extra lift of the chosen one <output id="liftOut">61%</output><input id="lift" type="range" min="0" max="80" step="1" value="61"></label>
+   <label>Extra lift of the chosen one <output id="liftOut">18%</output><input id="lift" type="range" min="0" max="80" step="1" value="18"></label>
    <label>Lean back <output id="backOut">23°</output><input id="back" type="range" min="0" max="45" step="1" value="23"></label>
    <label>Lean forward, at most <output id="fwdOut">38°</output><input id="fwd" type="range" min="10" max="60" step="1" value="38"></label>
    <h2>Frame by frame</h2>
@@ -229,12 +229,12 @@ const STYLES = {
 };
 let style = "blank", cut = "folder";
 function cover(i){
-  const W = 1176, H = 800, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const W = 1176, H = 894, c = document.createElement("canvas"); c.width = W; c.height = H;
   const x = c.getContext("2d"), it = item(i);
   const at = cut === "folder" ? [0, 0.5, 1][i % 3] : undefined;
   const top = at === undefined ? 0 : Math.round(H * fold.tabHeight);
   STYLES[style](x, it, W, H, top, at);
-  return { image: c, aspect: W / H, tab: at };
+  return { image: c, aspect: W / H, tab: at, edge: parseInt(it.hue.slice(1), 16) };
 }
 const covers = n => Array.from({ length: n }, (_, i) => cover(i));
 
@@ -277,7 +277,7 @@ function choose(i){
 }
 // the two fronts sit their records differently, so each starts from its own values
 function defaults(){
-  const v = frontWall === "up" ? { lift: 61, back: 23, gap: 134, fwd: 38, flip: 700 }
+  const v = frontWall === "up" ? { lift: 18, back: 23, gap: 134, fwd: 38, flip: 700 }
                                : { lift: 30, back: 24, gap: 80, fwd: 60, flip: 260 };
   $("lift").value = v.lift; $("liftOut").textContent = v.lift + "%";
   $("back").value = v.back; $("backOut").textContent = v.back + "°";

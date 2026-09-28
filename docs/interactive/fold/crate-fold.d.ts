@@ -4,6 +4,8 @@ export type CrateFoldState = "closed" | "folding" | "folded" | "unfolding" | "op
 export type CrateRecord = {
   image: HTMLCanvasElement;
   aspect: number;
+  /** Colour of this record's edges and back. Defaults to recordEdge. */
+  edge?: number;
   /**
    * Cut the record as a folder, with a tab standing up from its top edge. 0 is hard left, 1 hard
    * right. The tab is the top `tabHeight` of the canvas and `tabWidth` of its width; draw the
@@ -42,6 +44,11 @@ export type CrateFoldOptions = {
   view?: "front" | "above" | "records";
   /** The colour of a record's edges and back. Unlit, like its cover. */
   recordEdge?: number;
+  /**
+   * Light the records with the crate's own lamps (default true), so their colours are shaded as
+   * the crate's are and they darken down inside it. false keeps the cover's own pixels.
+   */
+  recordLit?: boolean;
   /** Corner radius of a record, in crate units. Default 30. */
   recordRadius?: number;
   /**

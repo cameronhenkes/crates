@@ -14,7 +14,8 @@
  */
 export function createCrateFold({ THREE, mount, textures, size = 460, onState = () => {}, onReady = () => {},
   palette: P = [0xB2543F, 0x9C4B38, 0xCE7560, 0xE0907C], view = "front",
-  recordEdge = 0xE8E2D6, recordRadius = 30, front: frontWall = "up" }) {
+  recordEdge = 0xE8E2D6, recordRadius = 30, recordLit = true,
+  front: frontWall = "up" }) {
 // front: what the display crate does with its front wall. "up" keeps it standing, so the crate is
 // still the icon and the chosen record slides up out of it. "down" folds it away and shows the
 // records through the open front.
@@ -483,7 +484,7 @@ let pq = view === "records" && !UP ? 1 : 0;
 let camMix = view === "records" ? 1 : 0;
 // Front up, the camera sits higher: it has to see over the front wall into the crate, and
 // leave room above for a record drawn right out of it.
-const REC = UP ? {dist: 5750, el: 27, ly: 640, lz: 60} : {dist: 3750, el: 17, ly: 318, lz: 190};
+const REC = UP ? {dist: 5250, el: 27, ly: 600, lz: 60} : {dist: 3750, el: 17, ly: 318, lz: 190};
 // box: the square the crate is drawn into after takeover, in screen pixels.
 let box = null;
 if (view === "records") t = target = UP ? 0 : 1;
@@ -612,14 +613,18 @@ function present(ms = UP ? TOTAL : P_TOTAL, to = 1){
 const REC_T = 6;                          // thickness of a record
 // front down they stand on the front wall where it lies; front up, on the floor
 const REC_Y = UP ? FLOOR_Y + 2 : FLOOR_Y + TH + 4;
-const REC_W = 760, REC_HMAX = 540;
+// As wide as the crate allows with room to move, and tall enough to stand a little proud of
+// the walls, the way folders do in a crate.
+const REC_W = 840, REC_HMAX = 650;
+// A record down in the crate is in the crate's shadow; it comes into the light as it rises.
+const REC_SHADE = 0.70;
 // front up they sit back from the front wall, or there is no room to flip them forward
 const REC_FRONT = UP ? 250 : 398, REC_BACK = UP ? -230 : -70;
 const WALL_IN = END_Z - TH / 2;             // the front wall's inner face
 const WALL_TOP = H;                         // its highest point, the tab
 // What a designer would want to try by hand: tune() changes these and lays the records again.
 // Front up, these are Cameron's, set by hand in the playground on 28 Sep 2026.
-const TUNE = UP ? {gap: 134, lift: 0.61, backLean: 23, forwardLean: 38}
+const TUNE = UP ? {gap: 134, lift: 0.18, backLean: 23, forwardLean: 38}
                 : {gap: 80, lift: 0.30, backLean: 24, forwardLean: 60};
 const FLIP_MS = UP ? 700 : 260;
 let listed = [];
@@ -674,8 +679,13 @@ function setRecords(list){
     const tex = new THREE.CanvasTexture(it.image);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
-    const card = () => new THREE.MeshBasicMaterial({color: recordEdge, toneMapped: false});
-    const face = new THREE.MeshBasicMaterial({map: tex, toneMapped: false});
+    // Lit by the same lamps as the crate, so a colour on a record is shaded the way that colour
+    // is shaded on the crate. recordLit: false keeps the cover's own pixels, for a picture that
+    // has to match the page.
+    const Mat = recordLit ? THREE.MeshLambertMaterial : THREE.MeshBasicMaterial;
+    const edgeOf = it.edge ?? recordEdge;
+    const card = () => new Mat({color: edgeOf, toneMapped: false});
+    const face = new Mat({map: tex, toneMapped: false});
     // A slab cut to a rounded outline, like every other part of the crate. Its faces carry the
     // cover; UVs come out in shape units, so the texture is scaled back to 0..1.
     tex.repeat.set(1 / w, 1 / h);
@@ -696,7 +706,9 @@ function setRecords(list){
     pivot.position.set(0, REC_Y, REC_FRONT - i * gap);
     pivot.add(mesh);
     scene.add(pivot);
-    return {pivot, mesh, h, ang: 0, up: 0, drop: 0, a0: 0, u0: 0, a1: 0, u1: 0};
+    const mats = [];
+    pivot.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) mats.push({m, base: m.color.clone()}); });
+    return {pivot, mesh, h, mats, i, ang: 0, up: 0, drop: 0, a0: 0, u0: 0, a1: 0, u1: 0};
   });
   // Forward lean: as far as the front record can go before it meets something. Front down that
   // is the rim of the base, which it rests on. Front up it is the inside of the front wall.
@@ -756,6 +768,11 @@ function settle(){
 function place(r){
   r.pivot.rotation.x = r.ang;
   r.mesh.position.y = r.h / 2 + r.up + r.drop;
+  if (recordLit) {
+    const out = clamp01((r.up + r.drop) / Math.max(1, (lifts[r.i] ?? lift) * 0.7));
+    const k = REC_SHADE + (1 - REC_SHADE) * out * out * (3 - 2 * out);
+    for (const {m, base} of r.mats) m.color.copy(base).multiplyScalar(k);
+  }
 }
 /** Put the records in, the way a hand would: lowered in from above, upright, the back one
  *  first, and only then flipped to the chosen one. Use this when the crate is already on
