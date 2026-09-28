@@ -823,3 +823,44 @@ Known compromises:
 Checked in `three-motion-frames.png` (16 moments, six of them inside the first
 quarter second) and `first-quarter-second-corners.png` (all four corners,
 enlarged, 0 to 500 ms). The unfold is the same positions in reverse.
+
+## The record crate (28 Sep 2026)
+
+Asked for by the portfolio: a collection page as a record crate. The crate
+stands open-fronted on the left with project covers in it like records, and
+hovering a project flips to its record.
+
+The module is now the source (`docs/interactive/fold/crate-fold.js`); this
+exploration page is history and `build-component.py` is retired.
+
+Added: `setOpenFront`, `present` (right, left, back rise; front stays down),
+`setRecords`, `dropRecords`, `select`, `pick`, `flyTo`, `resize`, a `records`
+view, and `seek` for painting single instants.
+
+Decisions, and why:
+
+- Records hinge on their bottom edge and only lean. Two neighbours cannot
+  cross while the one in front leans forward at least as far as the one
+  behind. Every pose and every blend between poses keeps that order, which is
+  what makes `select` safe to interrupt.
+- The forward lean is solved, not chosen: as far as the front record goes
+  before it rests on the rim of the base (58.9 degrees).
+- `setRecords` throws unless the walls are up. Folded side walls lie across
+  the floor and sweep the whole inside as they rise; the first flight test
+  had records in a flat crate and a wall passing through them.
+- Records arrive by being lowered in (`dropRecords`), not by appearing.
+
+Checked: 176 frames of a hover that changes its mind seven times, driven by
+a manual clock because headless Chrome starves animation frames. No order
+violation; least gap between neighbours 35.3; least gap to the rim 2.0; to
+the back wall 240.2. Frame sheets of the flip (front and side), the walls
+rising, the flight and the drop. A crate flown to a box and a crate painted
+in that box differ only in edge antialiasing.
+
+Compromises:
+
+- Leaning records keep even gaps; they do not rest on each other.
+- Records behind the chosen one lean back 24 degrees without reaching the
+  back wall unless the crate is full.
+- The chosen record stands lifted with nothing holding it.
+- Records stand on the folded front wall, in the front 470 of the crate.

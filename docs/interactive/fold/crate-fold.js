@@ -7,10 +7,22 @@
  * textures: { "front.png": url, "back.png": url, "side.png": url, "floor.png": url }
  * onState:  called with "closed" | "folding" | "folded" | "unfolding"
  *
- * Generated from docs/explorations/fold-three.html by
- * styles/crate/build-component.py. Edit the exploration, then rebuild.
+ * THIS FILE IS THE SOURCE. It began as a lift of the reviewed exploration
+ * (docs/explorations/fold-three.html) and has since grown the portfolio's
+ * camera work and the record crate; the exploration is now history.
+ * Review it with docs/interactive/fold/demo.html served over http.
  */
-export function createCrateFold({ THREE, mount, textures, size = 460, onState = () => {}, onReady = () => {} }) {
+export function createCrateFold({ THREE, mount, textures, size = 460, onState = () => {}, onReady = () => {},
+  palette: P = [0xB2543F, 0x9C4B38, 0xCE7560, 0xE0907C], view = "front",
+  recordEdge = 0xE8E2D6 }) {
+// "records" is "above" with the camera already brought down to look into the open front, so a
+// crate that flew there and a crate painted there are the same picture.
+const lifted = view !== "front";
+// palette: the untextured parts -- edges and tray, the shaded rear, the latch, its catch -- so a
+// crate in another colour matches its textures all the way round.
+// view: "front" is the icon, face-on at rest, and the camera lifts as it folds. "above" keeps the
+// camera lifted the whole way, so a crate that rests folded opens up in front of you rather than
+// swinging round to face you -- and is already looking down into itself for the dolly.
 const W = 900, H = 684, D = 950;   // the front face is the icon, tab and all
 // The icon is a FOLDER: its tab rises 96 above the body. The crate box is the
 // body only, so the other three walls are shorter and the tab overhangs them,
@@ -122,7 +134,7 @@ function wall(shape, w, h, url, hinge, rot, shade, x0 = w / 2, y0 = 0){
   const geo = new THREE.ExtrudeGeometry(shape,
     {depth: TH, bevelEnabled: false, curveSegments: 20});
   const edge = new THREE.MeshLambertMaterial(
-    {color: shade ? 0x9C4B38 : 0xB2543F});
+    {color: shade ? P[1] : P[0]});
   // ExtrudeGeometry groups: 0 = the two faces, 1 = the edge all the way round
   const slab = new THREE.Mesh(geo, [faceMat(url, shade, w, h), edge]);
   slab.position.set(-x0, -y0, -TH / 2);
@@ -214,21 +226,31 @@ const plain = c => new THREE.MeshLambertMaterial({color: c});
   const tray = new THREE.Mesh(
     new THREE.ExtrudeGeometry(trayShape(),
       {depth: D - FASCIA * 2, bevelEnabled: false, curveSegments: 20}),
-    plain(0xB2543F));
+    plain(P[0]));
   tray.position.set(-W/2, 0, -(D/2 - FASCIA));
   scene.add(tray);
   const geo = () => new THREE.ExtrudeGeometry(fasciaShape(),
     {depth: FASCIA, bevelEnabled: false, curveSegments: 20});
   const fascia = new THREE.Mesh(geo(),
-    [faceMat(TEX["front.png"], false, W, H), plain(0xB2543F)]);
+    [faceMat(TEX["front.png"], false, W, H), plain(P[0])]);
   fascia.position.set(-W/2, 0, D/2 - FASCIA);
   scene.add(fascia);
-  const rear = new THREE.Mesh(geo(), plain(0x9C4B38));
+  const rear = new THREE.Mesh(geo(), plain(P[1]));
   rear.position.set(-W/2, 0, -D/2);
   scene.add(rear);
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(W - INSET * 2 + 1, D - FASCIA * 2),
     mat(TEX["floor.png"], false));
+  // Seen from above, the floor is where the light falls into the open crate, and it is what the
+  // dolly lands on: drawn in its own colours, unlit, so the ground around the prints is the colour
+  // of the page the crate opens into.
+  if (lifted) {
+    const lit = floor.material;
+    floor.material = new THREE.MeshBasicMaterial({
+      map: lit.map, alphaTest: lit.alphaTest, side: lit.side, toneMapped: false,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    lit.dispose();
+  }
   floor.rotation.x = -Math.PI/2;
   floor.position.y = FLOOR_Y + 0.3;
   scene.add(floor);
@@ -278,19 +300,19 @@ function addLatches(pivot, w){
     const body = new THREE.Mesh(
       new THREE.ExtrudeGeometry(rectShape(LATCH_W, LATCH_H, 10),
         {depth: TH + 3, bevelEnabled: false, curveSegments: 10}),
-      new THREE.MeshLambertMaterial({color: 0xCE7560}));
+      new THREE.MeshLambertMaterial({color: P[2]}));
     body.position.set(0, 0, -(TH + 3) / 2);
     tongue.add(body);
     // grip ridges on the outer edge, where a thumb pushes
     for (let i = 0; i < 4; i++) {
       const ridge = new THREE.Mesh(new THREE.BoxGeometry(4, 8, TH + 6),
-        new THREE.MeshLambertMaterial({color: 0x9C4B38}));
+        new THREE.MeshLambertMaterial({color: P[1]}));
       ridge.position.set(side < 0 ? 4 : LATCH_W - 4, 10 + i * 14, 0);
       tongue.add(ridge);
     }
     // the round catch that seats in the side wall
     const boss = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, TH + 7, 18),
-      new THREE.MeshLambertMaterial({color: 0xE0907C}));
+      new THREE.MeshLambertMaterial({color: P[3]}));
     boss.rotation.x = Math.PI / 2;
     boss.position.set(side < 0 ? LATCH_W - 9 : 9, LATCH_H / 2, 0);
     tongue.add(boss);
@@ -336,11 +358,27 @@ function sideWall(ms){
 }
 
 const BEATS = [
-  {o:front, axis:"x", to:-Math.PI/2, start:START.front, fn:endWall},
-  {o:back,  axis:"x", to: Math.PI/2, start:START.back,  fn:endWall},
-  {o:left,  axis:"z", to:-Math.PI/2, start:START.left,  fn:sideWall},
-  {o:right, axis:"z", to: Math.PI/2, start:START.right, fn:sideWall},
+  {o:front, axis:"x", to:-Math.PI/2, start:START.front, fn:endWall,  name:"front", len:PRESS+SNAP+LOWER},
+  {o:back,  axis:"x", to: Math.PI/2, start:START.back,  fn:endWall,  name:"back",  len:PRESS+SNAP+LOWER},
+  {o:left,  axis:"z", to:-Math.PI/2, start:START.left,  fn:sideWall, name:"left",  len:SIDE},
+  {o:right, axis:"z", to: Math.PI/2, start:START.right, fn:sideWall, name:"right", len:SIDE},
 ];
+// PRESENTING. From folded flat to a display crate: the walls come up in the reverse of the order
+// they went down -- right, left, back -- and the front stays where it lies. Each wall is its own
+// fold played backwards, so the back is lifted, meets its latches and clicks home.
+const P_START = {right: 0, left: 170, back: 530};
+const P_TOTAL = P_START.back + PRESS + SNAP + LOWER;
+const DOWN = {a: 1, press: 0};
+const rising = (b, ms) => b.fn(b.len - Math.max(0, Math.min(b.len, ms)));
+// cubic-bezier(0.2, 0, 0, 1), the house curve: solved for x by bisection
+const house = x => {
+  if (x <= 0) return 0; if (x >= 1) return 1;
+  const bx = u => 3*(1-u)*(1-u)*u*0.2 + u*u*u;         // x1 = 0.2, x2 = 0
+  const by = u => 3*(1-u)*u*u + u*u*u;                  // y1 = 0,   y2 = 1
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (bx(m) < x) lo = m; else hi = m; }
+  return by((lo + hi) / 2);
+};
 // ease-out cubic is heavily front-loaded: 90% done at 54% through. On a
 // four-beat sequence that makes each wall snap and then wait, which reads
 // as a jump rather than a fold. ease-in-out spends the time in the middle,
@@ -364,10 +402,14 @@ const CLOSED_LIGHT = 0.38;
 function apply(t){
   const ms = t * TOTAL;
   const open = clamp01(endWall(ms - START.front).a / 0.45);
-  const light = CLOSED_LIGHT + (1 - CLOSED_LIGHT) * open * open * (3 - 2 * open);
+  // Seen from above the crate is open to the sky, so its inside is never in its own shadow.
+  const light = lifted ? 1
+    : CLOSED_LIGHT + (1 - CLOSED_LIGHT) * open * open * (3 - 2 * open);
   for (const {m, base} of INTERIOR) m.color.copy(base).multiplyScalar(light);
   for (const b of BEATS){
-    const {a, press} = b.fn(ms - b.start);
+    const {a, press} = pq > 0
+      ? (b.name === "front" ? DOWN : rising(b, pq * P_TOTAL - P_START[b.name]))
+      : b.fn(ms - b.start);
     b.o.rotation[b.axis] = b.to * a;
     for (const l of (b.o.userData.latches || []))
       l.tongue.position.x = l.baseX + l.dir * LATCH_OUT * press;
@@ -379,22 +421,78 @@ function apply(t){
   // Nothing is faded or switched on. Every part is opaque at every instant.
 
   const c = ease(t);
-  const dist = 3400 + 500*c;
-  // Dead-on at rest. At 5 degrees the floor and rim behind the front showed
-// as a strip beneath it, wider than the front and square at the corners --
-// which read as the bottom corners not lining up. Face-on, the front
-// occludes everything behind it and the resting frame is the icon alone.
-  const el = (0 + 49*c) * Math.PI/180;
-  camera.position.set(0, H*0.42 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
-  camera.lookAt(0, H*0.40*(1-c), c*(-D*0.10));
+  // From above, the camera holds still while the crate opens and closes under it: one distance,
+  // one point, framed for the open crate, which is the taller of the two.
+  // Dead-on at rest in "front": face-on, the front occludes everything behind it and the resting
+  // frame is the icon alone.
+  // camMix brings any of that down to the records view: low enough to look in through the open
+  // front at the faces of the records, high enough to see that they stand in a crate.
+  const m = house(camMix);
+  const mix = (a, b) => a + (b - a) * m;
+  const dist = mix(lifted ? 4300 : 3400 + 500*c, REC.dist);
+  const el = mix(lifted ? 49 : 49*c, REC.el) * Math.PI/180;
+  const lx = 0;
+  const ly = mix(lifted ? HB*0.32 : H*0.40*(1-c), REC.ly);
+  const lz = mix(lifted ? -D*0.06 : c*(-D*0.10), REC.lz);
+  if (!dz) {
+    camera.up.set(0, 1, 0);
+    camera.position.set(0, H*0.42 + Math.sin(el)*dist, Math.cos(el)*dist + D/2);
+    camera.lookAt(lx, ly, lz);
+    // After takeover the crate is drawn in a square somewhere on the screen; flyTo moves it.
+    if (box) camera.setViewOffset(box.s, box.s, -box.x, -box.y, box.vw, box.vh);
+  } else {
+    // The dolly: into the open crate and down onto its floor. The camera swings from its lifted
+    // angle to straight down while it closes in, and distance shrinks geometrically so the zoom
+    // reads at one rate rather than crawling and then lunging. Screen-up stays the crate's back
+    // the whole way, so nothing rolls as the view comes over the top.
+    const k = ease(dz);
+    const e2 = el + (Math.PI/2 - el) * k;
+    const d2 = dist * Math.pow(dollyEnd / dist, k);
+    const fy = FLOOR_Y + PRINT_Y;
+    // Both the point the camera circles and the point it looks at slide onto the floor's centre.
+    const cy = H*0.42 + (fy - H*0.42) * k, cz = D/2 * (1 - k);
+    camera.up.set(0, 0, -1);
+    camera.position.set(0, cy + Math.sin(e2)*d2, cz + Math.cos(e2)*d2 + 0.001);
+    camera.lookAt(lx, ly + (fy - ly) * k, lz * (1 - k));
+    // The frame slides with it: from where the crate sat on the page to where it lands.
+    if (view0 && view1) {
+      camera.setViewOffset(view0.s, view0.s,
+        -(view0.x + (view1.x - view0.x) * k), -(view0.y + (view1.y - view0.y) * k),
+        view0.vw, view0.vh);
+    }
+  }
+  if (spy === "side") {
+    camera.clearViewOffset();
+    camera.up.set(0, 1, 0);
+    camera.position.set(9000, 330, 120); camera.lookAt(0, 330, 120);
+  }
   renderer.render(scene, camera);
 }
+// spy: a review camera, never used by a page. "side" looks square across the crate.
+let spy = null;
 
 
 let t = 0, target = 0, raf = null, last = 0, dead = false;
+// pq: how far through presenting, 0 (not presenting) to 1 (open front). Only meaningful folded.
+let pq = view === "records" ? 1 : 0;
+// camMix: how far the camera has come down to the records view.
+let camMix = view === "records" ? 1 : 0;
+const REC = {dist: 3750, el: 17, ly: 318, lz: 190};
+// box: the square the crate is drawn into after takeover, in screen pixels.
+let box = null;
+if (view === "records") t = target = 1;
+// dz: how far into the dolly, 0 to 1. Only ever non-zero after takeover().
+let dz = 0;
+let dollyEnd = 90;
+// The window the crate is drawn into after takeover: the old square box (s, at x/y on screen)
+// extended to the whole viewport. view1 is where that square ends up when landing on a target.
+let view0 = null, view1 = null;
+// Prints lie this far above the floor; the camera lands on them, not on the floor under them.
+const PRINT_Y = 3;
+let prints = [];
 const DUR = TOTAL;
 const still = window.matchMedia("(prefers-reduced-motion: reduce)");
-const settled = () => onState(t > 0.5 ? "folded" : "closed");
+const settled = () => onState(pq >= 1 ? "open" : t > 0.5 ? "folded" : "closed");
 function run(now){
   if (dead) return;
   if (!last) last = now;
@@ -413,7 +511,257 @@ function toggle(){
   if (!raf) { last = 0; raf = requestAnimationFrame(run); }
   return open;
 }
-function set(v){ t = target = clamp01(v); apply(t); settled(); }
+function set(v){ pq = 0; t = target = clamp01(v); apply(t); settled(); }
+// Tween a value over a fixed time, for the home's own timing rather than the fold's 1.9s.
+function tween(ms, step){
+  return new Promise(done => {
+    if (still.matches || ms <= 0) { step(1); done(); return; }
+    let start = 0;
+    const frame = now => {
+      if (dead) return done();
+      if (!start) start = now;
+      const k = Math.min(1, (now - start) / ms);
+      step(k);
+      if (k < 1) requestAnimationFrame(frame); else done();
+    };
+    requestAnimationFrame(frame);
+  });
+}
+/** Play the fold to a position over ms. The whole choreography plays, just at this pace. */
+function play(to, ms){
+  if (raf) { cancelAnimationFrame(raf); raf = null; last = 0; }
+  const from = t; target = to;
+  onState(to > from ? "folding" : "unfolding");
+  return tween(ms, k => { t = from + (to - from) * k; apply(t); }).then(settled);
+}
+/** Lift the canvas out of its box into a host covering the screen, with the crate drawn exactly
+ *  where it was. The projection is the old square view extended to the whole window, so nothing
+ *  moves at the swap; after it the dolly has the whole screen to fill. */
+function takeover(host, rect){
+  const vw = innerWidth, vh = innerHeight;
+  host.appendChild(renderer.domElement);
+  renderer.setSize(vw, vh, false);
+  renderer.domElement.style.cssText = "display:block;width:100%;height:100%";
+  camera.aspect = 1;
+  view0 = {s: rect.width, x: rect.left, y: rect.top, vw, vh};
+  box = {...view0};
+  camera.setViewOffset(rect.width, rect.width, -rect.left, -rect.top, vw, vh);
+  camera.updateProjectionMatrix();
+  apply(t);
+}
+function dolly(ms){ return tween(ms, k => { dz = k; apply(t); camera.updateProjectionMatrix(); }); }
+/** The contents: pictures lying on the floor, top one last. Each is {image, w, h, x, z, rot}
+ *  in floor units, x to the right and z towards you, rot clockwise as seen from above. They are
+ *  unlit, so a print shows its picture's own colours -- the same pixels the page will show. */
+function setPrints(list){
+  for (const m of prints) { scene.remove(m); m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); }
+  prints = list.map((p, i) => {
+    const tex = new THREE.CanvasTexture(p.image);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h),
+      new THREE.MeshBasicMaterial({map: tex, transparent: true, toneMapped: false}));
+    mesh.rotation.set(-Math.PI/2, 0, -p.rot);
+    mesh.position.set(p.x, FLOOR_Y + 1 + i * (PRINT_Y - 1) / Math.max(1, list.length - 1), p.z);
+    scene.add(mesh);
+    return mesh;
+  });
+  apply(t);
+}
+/** After takeover: land straight down on the floor's centre so that a print `width` floor units
+ *  wide, lying there, covers exactly `target` on screen ({cx, cy, width} in CSS pixels). */
+function land(target, width, ms){
+  const f = Math.tan(camera.fov * Math.PI / 360);
+  dollyEnd = width * view0.s / (2 * f * target.width);
+  view1 = {x: target.cx - view0.s / 2, y: target.cy - view0.s / 2};
+  return dolly(ms);
+}
+
+// ---------------------------------------------------------------- the record crate
+/** The display state, painted at once: folded flat, then right, left and back standing. */
+function setOpenFront(){
+  if (raf) { cancelAnimationFrame(raf); raf = null; last = 0; }
+  t = target = 1; pq = 1; apply(t); settled();
+}
+/** From folded flat, raise the right, left and back walls; the front stays down.
+ *  present(ms, 0) lowers them again. */
+function present(ms = P_TOTAL, to = 1){
+  if (raf) { cancelAnimationFrame(raf); raf = null; last = 0; }
+  t = target = 1;
+  const from = pq;
+  onState(to > from ? "opening" : "folding");
+  // linear in time: each wall carries its own easing, as it does in the fold
+  return tween(ms, k => { pq = from + (to - from) * k; apply(t); }).then(settled);
+}
+
+// Records stand on the folded front wall, on edge, faces to the open front. They are hinged
+// along their bottom edge and only ever lean, so two neighbours can meet but never cross as
+// long as the one in front leans forward at least as far as the one behind it. Every pose this
+// module makes, and every blend between two of them, keeps that order.
+const REC_T = 6;                          // thickness of a record
+const REC_Y = FLOOR_Y + TH + 4;           // standing on the front wall where it lies
+const REC_W = 760, REC_HMAX = 540;
+const REC_FRONT = 398, REC_GAP = 80, REC_BACK = -70;
+const RIM_EDGE = {z: D/2 - FASCIA, y: RIM};   // the top inner edge of the base's front face
+let records = [], sel = 0, flip = 0, lean = {fwd: 0, back: 0}, lift = 0;
+
+function setRecords(list){
+  // The side walls lie across the floor when folded and sweep the whole inside as they rise.
+  // Records can only be in a crate whose walls are already up.
+  if (list.length && pq < 1)
+    throw new Error("setRecords needs the open-front crate: present() or setOpenFront() first");
+  for (const r of records) {
+    scene.remove(r.pivot); r.mesh.geometry.dispose();
+    for (const m of r.mesh.material) { if (m.map) m.map.dispose(); m.dispose(); }
+  }
+  const n = list.length;
+  const gap = n > 1 ? Math.min(REC_GAP, (REC_FRONT - REC_BACK) / (n - 1)) : 0;
+  let tallest = 0;
+  records = list.map((it, i) => {
+    let w = REC_W, h = w / it.aspect;
+    if (h > REC_HMAX) { h = REC_HMAX; w = h * it.aspect; }
+    tallest = Math.max(tallest, h);
+    const tex = new THREE.CanvasTexture(it.image);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const card = () => new THREE.MeshBasicMaterial({color: recordEdge, toneMapped: false});
+    const face = new THREE.MeshBasicMaterial({map: tex, toneMapped: false});
+    // box faces: +x, -x, +y, -y, +z (the cover), -z
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, REC_T),
+      [card(), card(), card(), card(), face, card()]);
+    mesh.userData.record = i;
+    const pivot = new THREE.Group();
+    pivot.position.set(0, REC_Y, REC_FRONT - i * gap);
+    pivot.add(mesh);
+    scene.add(pivot);
+    return {pivot, mesh, h, ang: 0, up: 0, drop: 0, a0: 0, u0: 0, a1: 0, u1: 0};
+  });
+  // Forward lean: as far as the front record can go before it rests on the rim of the base.
+  // d is the clearance between the record's lower face and that edge; bisect for the angle.
+  const clear = a => (RIM_EDGE.z - REC_FRONT) * Math.cos(a)
+                   - (RIM_EDGE.y - REC_Y) * Math.sin(a) - REC_T / 2 - 2;
+  let lo = 0, hi = 60 * Math.PI/180;
+  if (clear(hi) < 0) for (let i = 0; i < 30; i++) { const m = (lo+hi)/2; if (clear(m) > 0) lo = m; else hi = m; }
+  else lo = hi;
+  // Backward lean: until the last record would touch the back wall, and never more than 24 deg.
+  const zl = n ? REC_FRONT - (n - 1) * gap : 0;
+  const reach = (zl - REC_T/2 - 3) - (-END_Z + TH/2);
+  lean = {fwd: lo, back: Math.min(24 * Math.PI/180, Math.asin(Math.min(1, Math.max(0, reach / (tallest || 1)))))};
+  // Lift: enough that the record in front, leaning, does not cover the foot of the chosen one
+  // from where the records camera sits.
+  lift = Math.round(tallest * 0.30);
+  sel = Math.max(0, Math.min(sel, n - 1));
+  for (const [i, r] of records.entries()) {
+    const g = goal(i, sel); r.ang = r.a1 = g.ang; r.up = r.u1 = g.up; place(r);
+  }
+  apply(t);
+}
+const goal = (i, s) => i < s ? {ang: lean.fwd, up: 0} : i > s ? {ang: -lean.back, up: 0}
+                                                          : {ang: 0, up: lift};
+function place(r){
+  r.pivot.rotation.x = r.ang;
+  r.mesh.position.y = r.h / 2 + r.up + r.drop;
+}
+/** Put the records in, the way a hand would: lowered in from above, upright, the back one
+ *  first, and only then flipped to the chosen one. Use this when the crate is already on
+ *  screen; setRecords() is for a crate that is painted with its records in it. */
+const DROP_FROM = 1250, DROP_STAGGER = 0.5;
+function dropPose(k){
+  const n = records.length;
+  for (const [i, r] of records.entries()) {
+    // the back record leads; each one takes half the time and they overlap
+    const lead = n > 1 ? (n - 1 - i) / (n - 1) * DROP_STAGGER : 0;
+    const e = house(clamp01((k - lead) / (1 - DROP_STAGGER)));
+    r.ang = 0; r.up = 0; r.drop = DROP_FROM * (1 - e); place(r);
+  }
+}
+function dropRecords(list, ms = 700, then = sel){
+  setRecords(list);
+  const mine = ++flip;
+  return tween(ms, k => { if (mine === flip) { dropPose(k); apply(t); } })
+    .then(() => mine === flip ? select(then) : undefined);
+}
+/** Flip to a record. Those in front of it lean forward over the folded front wall, it stands
+ *  upright and lifts, those behind lean back. Safe to call again before it has finished: every
+ *  record starts from wherever it is. */
+function select(index, ms = 260){
+  if (!records.length) return Promise.resolve();
+  sel = Math.max(0, Math.min(index, records.length - 1));
+  const mine = ++flip;
+  for (const [i, r] of records.entries()) {
+    const g = goal(i, sel); r.a0 = r.ang; r.u0 = r.up + r.drop; r.drop = 0; r.a1 = g.ang; r.u1 = g.up;
+  }
+  return tween(ms, k => {
+    if (mine !== flip) return;            // a newer select() has taken over
+    const e = house(k);
+    for (const r of records) {
+      r.ang = r.a0 + (r.a1 - r.a0) * e; r.up = r.u0 + (r.u1 - r.u0) * e; place(r);
+    }
+    apply(t);
+  });
+}
+/** Which record is under this point of the screen, or -1. */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(clientX, clientY){
+  const r = renderer.domElement.getBoundingClientRect();
+  if (!r.width || !records.length) return -1;
+  ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+  camera.updateMatrixWorld();
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(records.map(x => x.mesh), false)[0];
+  return hit ? hit.object.userData.record : -1;
+}
+/** After takeover: carry the crate from where it sits to `to` ({left, top, size} in screen
+ *  pixels), bringing the camera down to the records view on the way. With `open`, the walls
+ *  come up during the flight, so it arrives as a display crate. */
+function flyTo(to, ms, {open = true} = {}){
+  if (!box) throw new Error("flyTo needs takeover() first");
+  const b0 = {...box}, c0 = camMix, p0 = pq;
+  if (open) { t = target = 1; onState("opening"); }
+  return tween(ms, k => {
+    const e = house(k);
+    box.s = b0.s + (to.size - b0.s) * e;
+    box.x = b0.x + (to.left - b0.x) * e;
+    box.y = b0.y + (to.top - b0.y) * e;
+    camMix = c0 + (1 - c0) * k;           // eased inside apply()
+    if (open) pq = p0 + (1 - p0) * k;
+    apply(t);
+  }).then(() => { view0 = {...box}; settled(); });
+}
+/** The box the canvas is drawn into has changed size. */
+function resize(px){
+  if (box) {
+    box.vw = innerWidth; box.vh = innerHeight;
+    renderer.setSize(box.vw, box.vh, false);
+  } else renderer.setSize(px, px, false);
+  apply(t);
+}
+const selected = () => sel;
+/** For review: paint one instant. `present` is 0..1 through the walls rising; `from`, `to` and
+ *  `k` paint the flip from one record to another at k, 0..1 in time; `flight` paints flyTo
+ *  part-way. Nothing animates. */
+function __camera(name){ spy = name; for (const w of [left, right]) w.visible = name !== "side"; apply(t); }
+const __angles = () => records.map(r => [r.ang, r.up]);
+function seek({present: q, from, to, k = 1, flight, drop} = {}){
+  if (q !== undefined) { t = target = 1; pq = q; }
+  if (flight && view0) {                 // {to: {left, top, size}, k}: the flight at k
+    const e = house(flight.k);
+    box = {...view0, s: view0.s + (flight.to.size - view0.s) * e,
+           x: view0.x + (flight.to.left - view0.x) * e, y: view0.y + (flight.to.top - view0.y) * e};
+    camMix = flight.k; t = target = 1; pq = flight.k;
+  }
+  if (to !== undefined && records.length) {
+    const e = house(k);
+    for (const [i, r] of records.entries()) {
+      const a = goal(i, from ?? to), b = goal(i, to);
+      r.ang = a.ang + (b.ang - a.ang) * e; r.up = a.up + (b.up - a.up) * e; place(r);
+    }
+    sel = to;
+  }
+  if (drop !== undefined && records.length) dropPose(drop);
+  apply(t);
+}
+
 function dispose(){
   dead = true;
   if (raf) cancelAnimationFrame(raf);
@@ -422,10 +770,13 @@ function dispose(){
     o.geometry.dispose();
     for (const m of [].concat(o.material)) { if (m.map) m.map.dispose(); m.dispose(); }
   });
+  for (const m of prints) { m.material.map?.dispose(); }
   renderer.dispose();
   renderer.domElement.remove();
 }
 manager.onLoad = () => { if (!dead) { apply(t); onReady(); } };
 apply(t);
-return { toggle, set, dispose, duration: TOTAL };
+return { toggle, set, play, takeover, dolly, land, setPrints,
+         setOpenFront, present, setRecords, dropRecords, select, selected, pick, flyTo, resize, seek, __camera, __angles,
+         dispose, duration: TOTAL, presentDuration: P_TOTAL };
 }

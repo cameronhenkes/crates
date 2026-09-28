@@ -4,24 +4,134 @@
 <style>
  html,body{margin:0;height:100%;background:#14161a;color:#e9ecf1;font:14px/1.5 -apple-system,sans-serif}
  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
- button{appearance:none;background:none;border:0;padding:0;cursor:pointer;width:460px}
+ button{appearance:none;background:none;border:0;padding:0;cursor:pointer;width:520px}
+ p{margin:0;font-size:12px;color:#8b93a1}
 </style>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
 </script></head><body>
-<!-- Serve this folder over http (python3 -m http.server) -- modules and
-     textures are both refused from file://. -->
+<!-- Serve this folder over http (python3 -m http.server): modules and
+     textures are both refused from file://.
+
+     ?t=0.4                      the fold, at one instant
+     ?view=records&n=6&sel=2     the display crate with six records, third chosen
+     ?view=records&n=6&from=1&sel=2&k=0.5   halfway through a flip
+     ?view=above&present=0.6     the walls rising, seen from above
+     ?view=records&n=6&drop=0.5  the records being lowered in
+     ?view=above&probe=fly&k=0.5 the flight from the shelf to its box
+     ?view=records&n=6&cam=side  the same, from the side, to check clearances
+     No query: click to fold; with view=records, arrow keys or hover flip. -->
 <button id="b" aria-pressed="false"></button>
 <p id="s">closed</p>
 <script type="module">
 import * as THREE from "three";
 import { createCrateFold } from "./crate-fold.js";
+const q = new URLSearchParams(location.search);
 const b = document.getElementById("b"), s = document.getElementById("s");
-const fold = createCrateFold({ THREE, mount: b,
+const view = q.get("view") || "front";
+const HUES = ["#d8623f", "#3f7fd8", "#e6b53a", "#4fa36b", "#9a5fd0", "#d84f7c", "#3fb8c4", "#8a8f98"];
+function cover(i){
+  const c = document.createElement("canvas"); c.width = 882; c.height = 600;
+  const x = c.getContext("2d");
+  x.fillStyle = HUES[i % HUES.length]; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "rgba(255,255,255,.92)"; x.font = "700 300px -apple-system, sans-serif";
+  x.textBaseline = "middle"; x.fillText(String(i + 1), 60, 310);
+  x.font = "500 40px -apple-system, sans-serif"; x.fillText("top edge", 60, 50);
+  x.textAlign = "right"; x.fillText("foot", 822, 560);
+  return {image: c, aspect: c.width / c.height};
+}
+const n = parseInt(q.get("n") || "0", 10);
+const fold = createCrateFold({ THREE, mount: b, size: 520, view,
   textures: { "front.png": "tex/front.png", "back.png": "tex/back.png",
               "side.png": "tex/side.png", "floor.png": "tex/floor.png" },
   onState: v => s.textContent = v,
-  onReady: () => { const q = new URLSearchParams(location.search);
-                   if (q.has("t")) fold.set(parseFloat(q.get("t"))); } });
-b.addEventListener("click", () => b.setAttribute("aria-pressed", String(fold.toggle())));
+  onReady: () => {
+    if (q.has("t")) fold.set(parseFloat(q.get("t")));
+    if (q.has("present")) fold.seek({present: parseFloat(q.get("present"))});
+    if (q.get("cam")) fold.__camera(q.get("cam"));
+    fold.seek({});
+  } });
+if (n) {
+  if (view !== "records") fold.setOpenFront();
+  fold.setRecords(Array.from({length: n}, (_, i) => cover(i)));
+  const to = parseInt(q.get("sel") || "0", 10);
+  fold.seek({from: q.has("from") ? parseInt(q.get("from"), 10) : to, to,
+             k: q.has("k") ? parseFloat(q.get("k")) : 1});
+  if (q.has("drop")) fold.seek({drop: parseFloat(q.get("drop"))});
+}
+window.fold = fold;
+addEventListener("resize", () => fold.resize(520));
+
+// ---- probes, for review only
+const probe = q.get("probe");
+const BOX = {left: 40, top: 110, size: 360};
+if (probe === "paint") {
+  // what the collection page does: its own crate, painted straight into the box
+  b.style.cssText = `position:fixed;left:${BOX.left}px;top:${BOX.top}px;width:${BOX.size}px`;
+  s.remove();
+}
+if (probe === "fly") {
+  // what the home does: take the canvas over, then fly it to the same box
+  s.remove();
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0";
+  document.body.appendChild(host);
+  fold.set(1);
+  fold.takeover(host, b.getBoundingClientRect());
+  fold.seek({flight: {to: BOX, k: q.has("k") ? parseFloat(q.get("k")) : 1}});
+  const c = host.querySelector("canvas"), r = c.getBoundingClientRect();
+  document.title = JSON.stringify({iw: innerWidth, ih: innerHeight, css: [r.width, r.height],
+                                   buf: [c.width, c.height], dpr: devicePixelRatio});
+}
+if (probe === "logic") {
+  // Headless Chrome starves requestAnimationFrame, so drive the clock by hand: every 8ms of a
+  // hover that changes its mind, with every frame checked.
+  const out = {};
+  const r = b.getBoundingClientRect();
+  fold.seek({to: 2});
+  out.pickCentre = fold.pick(r.left + r.width / 2, r.top + r.height * 0.42);
+  out.pickCorner = fold.pick(r.left + 4, r.top + 4);
+  let queue = [], now = 1000;
+  window.requestAnimationFrame = f => (queue.push(f), 0);
+  const Z0 = 398, GAP = 80, HT = 760 / (882 / 600), T = 6, BASE = 43;
+  const BACK = -455.5, RIM = {z: 469, y: 80};
+  let frames = 0, order = 0, backGap = 1e9, rimGap = 1e9, neighbour = 1e9;
+  const check = () => {
+    const a = fold.__angles(); frames++;
+    a.forEach(([ang, up], i) => {
+      const z = Z0 - i * GAP;
+      if (i) order = Math.max(order, ang - a[i - 1][0]);
+      // the far top corner against the back wall
+      backGap = Math.min(backGap, z + (HT + up) * Math.sin(ang) - T / 2 - BACK,
+                                  z + up * Math.sin(ang) - T / 2 - BACK);
+      // the lower face against the rim of the base, for anything leaning over it
+      if (ang > 0) rimGap = Math.min(rimGap,
+        (RIM.z - z) * Math.cos(ang) - (RIM.y - BASE) * Math.sin(ang) - T / 2);
+      // face to face with the record in front, measured at both ends of this one
+      if (i) {
+        const [pa, pu] = a[i - 1], pz = Z0 - (i - 1) * GAP;
+        for (const s of [up, up + HT]) {
+          const qz = z + s * Math.sin(ang), qy = s * Math.cos(ang);
+          neighbour = Math.min(neighbour, (pz - qz) * Math.cos(pa) + qy * Math.sin(pa) - T);
+        }
+      }
+    });
+  };
+  const script = {0: 5, 88: 0, 168: 3, 296: 4, 336: 1, 376: 5, 696: 2};   // multiples of 8
+  out.selects = 0;
+  for (let ms = 0; ms <= 1400; ms += 8) {
+    if (script[ms] !== undefined) { fold.select(script[ms]); out.selects++; }
+    const run = queue; queue = [];
+    for (const f of run) f(now + ms);
+    check();
+  }
+  out.frames = frames;
+  out.orderViolation = +order.toFixed(6);
+  out.leastGapToBackWall = +backGap.toFixed(1);
+  out.leastGapToRim = +rimGap.toFixed(1);
+  out.leastGapBetweenNeighbours = +neighbour.toFixed(1);
+  out.settledOn = fold.selected();
+  out.final = fold.__angles().map(v => [+(v[0] * 180 / Math.PI).toFixed(1), +v[1].toFixed(1)]);
+  s.textContent = "PROBE " + JSON.stringify(out);
+}
 </script></body></html>

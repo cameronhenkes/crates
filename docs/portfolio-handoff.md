@@ -26,7 +26,8 @@ Copy into the portfolio as `public/images/projects/crates/`.
 | File | What it is |
 |---|---|
 | `CrateFold3D.tsx` + `CrateFold3D.module.css` | The React component. A real button, a label, the hover lift. |
-| `crate-fold.js` + `crate-fold.d.ts` | The scene itself. No framework. Generated from the reviewed exploration, so do not edit it by hand. |
+| `crate-fold.js` + `crate-fold.d.ts` | The scene itself. No framework. This is the source: the fold, the portfolio's camera work (palette, views, takeover, dolly, prints) and the record crate (open front, records, flip, pick, flight). |
+| `shoot.sh` | Renders `demo.html` at one instant, for frame review. |
 | `tex/front.png`, `back.png`, `side.png`, `floor.png` | The four textures, 640k together. |
 | `demo.html` | The module with no framework around it. Serve the folder over http to view. |
 
