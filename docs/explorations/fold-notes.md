@@ -982,3 +982,25 @@ something in it. The first item had been rust in a rust crate.
 Rule: items take the icon's palette less the crate's own colour and anything
 close enough to be mistaken for it. With a rust crate that drops rust and
 ochre. The rule is relative to the crate, so a sage crate drops sage.
+
+## At rest, a portrait frame, and Cameron's third round (28 Sep 2026)
+
+"If there are no items hovered over, then they should all be sitting within
+the crate." Selection can now be none (-1), which is how records start and
+what the pointer leaving returns to. Every item sits down, leaning back
+together.
+
+His third round of values: flip 520 ms, gap 140, extra lift 69%, lean back up
+to 45, lean forward up to 60. Both leans are ceilings; the walls stop them
+first (about 22 back and 18 forward with six items).
+
+He wanted the items larger AND lifted further, which a square frame cannot
+give: the two trade against each other. The records view is now a portrait
+frame, 0.72 wide to 1 tall (`recordsAspect`). The angle of view is fixed
+across the frame, so the crate fills the width as before and the extra height
+is room above it. A crate flown in is drawn in a square that grows to the
+frame's height while its angle of view opens, and lands on the same picture
+as one painted there.
+
+A lifted item leaning back could reach the back wall. Frames are now settled
+from the back as well as the front.

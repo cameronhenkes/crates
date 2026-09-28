@@ -14,7 +14,7 @@
  */
 export function createCrateFold({ THREE, mount, textures, size = 460, onState = () => {}, onReady = () => {},
   palette: P = [0xB2543F, 0x9C4B38, 0xCE7560, 0xE0907C], view = "front",
-  recordEdge = 0xE8E2D6, recordRadius = 30, recordLit = true,
+  recordEdge = 0xE8E2D6, recordRadius = 30, recordLit = true, recordsAspect = 0.72,
   front: frontWall = "up" }) {
 // front: what the display crate does with its front wall. "up" keeps it standing, so the crate is
 // still the icon and the chosen record slides up out of it. "down" folds it away and shows the
@@ -23,6 +23,10 @@ const UP = frontWall !== "down";
 // "records" is "above" with the camera already brought down to look into the open front, so a
 // crate that flew there and a crate painted there are the same picture.
 const lifted = view !== "front";
+// The records view is a portrait frame: the crate at its foot and room above for a folder drawn
+// right out of it. Width over height. Every other view is square.
+const ASPECT = view === "records" ? recordsAspect : 1;
+const FOV = 17;                          // across the frame; the same in every view
 // palette: the untextured parts -- edges and tray, the shaded rear, the latch, its catch -- so a
 // crate in another colour matches its textures all the way round.
 // view: "front" is the icon, face-on at rest, and the camera lifts as it folds. "above" keeps the
@@ -68,13 +72,13 @@ const SIZE = size;
 const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(SIZE, SIZE);
+renderer.setSize(SIZE, Math.round(SIZE / ASPECT));
 mount.appendChild(renderer.domElement);
 renderer.domElement.style.cssText = "display:block;width:100%;height:auto";
 
 // Low FOV from far away reads as near-orthographic, so the resting frame is
 // the icon rather than a photograph of it.
-const camera = new THREE.PerspectiveCamera(17, 1, 10, 12000);
+const camera = new THREE.PerspectiveCamera(FOV, ASPECT, 10, 12000);
 scene.add(new THREE.AmbientLight(0xffffff, 1.05));
 const key = new THREE.DirectionalLight(0xffffff, 0.45);
 key.position.set(-500, 900, 1200); scene.add(key);
@@ -433,6 +437,11 @@ function apply(t){
   // camMix brings any of that down to the records view: low enough to look in through the open
   // front at the faces of the records, high enough to see that they stand in a crate.
   const m = house(camMix);
+  // A crate flown here is drawn in a square that grows to the portrait frame's height, so its
+  // angle of view opens as it travels; one painted here has the portrait frame from the start.
+  const shape = ASPECT !== 1 ? ASPECT : 1 + (recordsAspect - 1) * m;
+  camera.fov = 2 * Math.atan(Math.tan(FOV * Math.PI / 360) / shape) * 180 / Math.PI;
+  camera.updateProjectionMatrix();
   const mix = (a, b) => a + (b - a) * m;
   const dist = mix(lifted ? 4300 : 3400 + 500*c, REC.dist);
   const el = mix(lifted ? 49 : 49*c, REC.el) * Math.PI/180;
@@ -484,7 +493,7 @@ let pq = view === "records" && !UP ? 1 : 0;
 let camMix = view === "records" ? 1 : 0;
 // Front up, the camera sits higher: it has to see over the front wall into the crate, and
 // leave room above for a record drawn right out of it.
-const REC = UP ? {dist: 5250, el: 27, ly: 600, lz: 60} : {dist: 3750, el: 17, ly: 318, lz: 190};
+const REC = UP ? {dist: 4450, el: 27, ly: 690, lz: 60} : {dist: 3750, el: 17, ly: 318, lz: 190};
 // box: the square the crate is drawn into after takeover, in screen pixels.
 let box = null;
 if (view === "records") t = target = UP ? 0 : 1;
@@ -624,12 +633,13 @@ const WALL_IN = END_Z - TH / 2;             // the front wall's inner face
 const WALL_TOP = H;                         // its highest point, the tab
 // What a designer would want to try by hand: tune() changes these and lays the records again.
 // Front up, these are Cameron's, set by hand in the playground on 28 Sep 2026.
-const TUNE = UP ? {gap: 134, lift: 0.18, backLean: 23, forwardLean: 38}
+const TUNE = UP ? {gap: 140, lift: 0.69, backLean: 45, forwardLean: 60}
                 : {gap: 80, lift: 0.30, backLean: 24, forwardLean: 60};
-const FLIP_MS = UP ? 700 : 260;
+const FLIP_MS = UP ? 520 : 260;
 let listed = [];
 const RIM_EDGE = {z: D/2 - FASCIA, y: RIM};   // the top inner edge of the base's front face
-let records = [], sel = 0, flip = 0, lean = {fwd: 0, back: 0}, lift = 0, lifts = [];
+// sel is -1 when nothing is chosen: every record sits down in the crate, leaning back together.
+let records = [], sel = -1, flip = 0, lean = {fwd: 0, back: 0}, lift = 0, lifts = [];
 
 // A record cut as a folder: the crate's own silhouette, with a tab standing up from its top
 // edge. `at` slides the tab along, 0 hard left to 1 hard right, so a row of them can be staggered
@@ -733,10 +743,11 @@ function setRecords(list){
     const z = REC_FRONT - i * gap;
     return Math.max(0, Math.round(WALL_TOP - (WALL_IN - z) * slope - REC_Y)) + lift;
   });
-  sel = Math.max(0, Math.min(sel, n - 1));
+  sel = Math.max(-1, Math.min(sel, n - 1));
   for (const [i, r] of records.entries()) {
-    const g = goal(i, sel); r.ang = r.a1 = g.ang; r.up = r.u1 = g.up; place(r);
+    const g = goal(i, sel); r.ang = r.a1 = g.ang; r.up = r.u1 = g.up;
   }
+  settle();
   apply(t);
 }
 const goal = (i, s) => i < s ? {ang: lean.fwd, up: 0} : i > s ? {ang: -lean.back, up: 0}
@@ -755,9 +766,28 @@ function mayLean(r, up){
   for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (ok(m)) lo = m; else hi = m; }
   return lo;
 }
+// And the same behind: whatever is still below the top of the back wall stays in front of it.
+function mayLeanBack(r, up){
+  const z = r.pivot.position.z, wall = -END_Z + TH / 2;
+  const ok = a => {
+    const reach = Math.min(up + r.h, (HB + 10 - REC_Y) / Math.cos(a));
+    return reach <= up || z - reach * Math.sin(a) - REC_T / 2 * Math.cos(a) >= wall + 4;
+  };
+  if (ok(lean.back)) return lean.back;
+  let lo = 0, hi = lean.back;
+  for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (ok(m)) lo = m; else hi = m; }
+  return lo;
+}
 // Settle a frame: hold each record off the front wall, then make sure none leans further
 // forward than the one in front of it, which is the rule that stops two of them crossing.
 function settle(){
+  // from the back: hold each record off the back wall, and bring those in front along with it
+  let behind = -Infinity;
+  for (let i = records.length - 1; i >= 0; i--) {
+    const r = records[i];
+    if (r.ang < 0) r.ang = Math.max(r.ang, -mayLeanBack(r, r.up + r.drop));
+    r.ang = Math.max(r.ang, behind); behind = r.ang;
+  }
   let ahead = Infinity;
   for (const r of records) {
     if (r.ang > 0) r.ang = Math.min(r.ang, mayLean(r, r.up + r.drop));
@@ -793,12 +823,13 @@ function dropRecords(list, ms = 700, then = sel){
   return tween(ms, k => { if (mine === flip) { dropPose(k); apply(t); } })
     .then(() => mine === flip ? select(then) : undefined);
 }
-/** Flip to a record. Those in front of it lean forward over the folded front wall, it stands
+/** Flip to a record, or to none with -1, which sits them all back down in the crate.
+ *  Those in front of the chosen one lean forward, it stands
  *  upright and lifts, those behind lean back. Safe to call again before it has finished: every
  *  record starts from wherever it is. */
 function select(index, ms = FLIP_MS){
   if (!records.length) return Promise.resolve();
-  sel = Math.max(0, Math.min(index, records.length - 1));
+  sel = Math.max(-1, Math.min(index, records.length - 1));
   const mine = ++flip;
   for (const [i, r] of records.entries()) {
     const g = goal(i, sel); r.a0 = r.ang; r.u0 = r.up + r.drop; r.drop = 0; r.a1 = g.ang; r.u1 = g.up;
@@ -861,8 +892,11 @@ function flyTo(to, ms, {open = true} = {}){
   if (open) { if (!UP) t = target = 1; else target = 0; onState("opening"); }
   return tween(ms, k => {
     const e = house(k);
-    box.s = b0.s + (to.size - b0.s) * e;
-    box.x = b0.x + (to.left - b0.x) * e;
+    // `to` is the portrait frame: size wide, size / recordsAspect tall. The crate is drawn in a
+    // square as tall as that frame and centred on it.
+    const side = to.size / recordsAspect;
+    box.s = b0.s + (side - b0.s) * e;
+    box.x = b0.x + (to.left - (side - to.size) / 2 - b0.x) * e;
     box.y = b0.y + (to.top - b0.y) * e;
     camMix = c0 + (1 - c0) * k;           // eased inside apply()
     if (open && UP) t = t0 * (1 - k); else if (open) pq = p0 + (1 - p0) * k;
@@ -874,7 +908,7 @@ function resize(px){
   if (box) {
     box.vw = innerWidth; box.vh = innerHeight;
     renderer.setSize(box.vw, box.vh, false);
-  } else renderer.setSize(px, px, false);
+  } else renderer.setSize(px, Math.round(px / ASPECT), false);
   apply(t);
 }
 const selected = () => sel;
@@ -900,7 +934,11 @@ function __gaps(){
   records.forEach((r, i) => {
     const z = r.pivot.position.z, lo = r.up + r.drop, hi = lo + r.h;
     const sn = Math.sin(r.ang), cs = Math.cos(r.ang);
-    backGap = Math.min(backGap, z + lo * sn - REC_T/2 - (-END_Z + TH/2), z + hi * sn - REC_T/2 - (-END_Z + TH/2));
+    // likewise behind: only what is below the top of the back wall can touch it
+    for (let k = 0; k <= 20; k++) {
+      const q = lo + (hi - lo) * k / 20;
+      if (REC_Y + q * cs < HB + 8) backGap = Math.min(backGap, z + q * sn - REC_T/2 - (-END_Z + TH/2));
+    }
     if (UP) {
       // any part of the record still below the top of the front wall must be behind it
       for (let k = 0; k <= 20; k++) {
@@ -925,7 +963,9 @@ function seek({present: q, from, to, k = 1, flight, drop} = {}){
   if (flight && view0) {                 // {to: {left, top, size}, k}: the flight at k
     const e = house(flight.k);
     box = {...view0, s: view0.s + (flight.to.size - view0.s) * e,
-           x: view0.x + (flight.to.left - view0.x) * e, y: view0.y + (flight.to.top - view0.y) * e};
+           x: view0.x + (flight.to.left - (flight.to.size / recordsAspect - flight.to.size) / 2 - view0.x) * e,
+           y: view0.y + (flight.to.top - view0.y) * e};
+    box.s = view0.s + (flight.to.size / recordsAspect - view0.s) * e;
     camMix = flight.k;
     if (UP) { t = target = 1 - flight.k; pq = 0; } else { t = target = 1; pq = flight.k; }
   }
@@ -959,5 +999,5 @@ apply(t);
 if (view === "records") settled();
 return { toggle, set, play, takeover, dolly, land, setPrints,
          setOpenFront, present, setRecords, dropRecords, select, selected, pick, through, outline, flyTo, resize, tune, seek, __camera, __angles, __gaps,
-         dispose, tabHeight: TAB_H, tabWidth: TAB_W, tabRun: TAB_RUN / REC_W, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
+         dispose, aspect: ASPECT, recordsAspect, tabHeight: TAB_H, tabWidth: TAB_W, tabRun: TAB_RUN / REC_W, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
 }

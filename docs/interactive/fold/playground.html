@@ -8,7 +8,7 @@
  body.light{--bg:#f3f1ec;--panel:#fff;--line:#dedad2;--ink:#1b1d21;--mute:#6b7079;color-scheme:light}
  main{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:100%}
  #stage{position:relative;display:flex;align-items:center;justify-content:center;gap:40px;padding:24px;overflow:hidden}
- #mount{appearance:none;background:none;border:0;padding:0;width:min(560px,100%);cursor:pointer;border-radius:16px;flex:none}
+ #mount{appearance:none;background:none;border:0;padding:0;width:min(560px,100%);max-height:100%;cursor:pointer;border-radius:16px;flex:none}
  #mount:focus-visible{outline:2px solid var(--ink);outline-offset:6px}
  #list{list-style:none;margin:0;padding:0;min-width:200px;display:none}
  #list li{padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--mute);display:flex;gap:10px;align-items:center}
@@ -74,7 +74,7 @@
   </section>
 
   <section id="records">
-   <p class="note">Hover a name, hover a record, scroll over the crate, or use the arrow keys.</p>
+   <p class="note">Hover a name or move through the crate. Move away and they all sit back down. Scroll and arrow keys work too; Escape puts them back.</p>
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
    <p class="note">A folder in one of the icon's colours, never the crate's own. No picture, no words. The list names it.</p>
@@ -89,12 +89,12 @@
    <div class="row"><button data-do="frontUp">Standing</button><button data-do="frontDown">Folded down</button></div>
    <h2>Records</h2>
    <label>How many <output id="nOut">6</output><input id="n" type="range" min="1" max="12" step="1" value="6"></label>
-   <label>Flip takes <output id="flipOut">700 ms</output><input id="flipMs" type="range" min="80" max="1500" step="10" value="700"></label>
+   <label>Flip takes <output id="flipOut">520 ms</output><input id="flipMs" type="range" min="80" max="1500" step="10" value="520"></label>
    <h2>How they sit</h2>
-   <label>Gap between records <output id="gapOut">134</output><input id="gap" type="range" min="20" max="140" step="2" value="134"></label>
-   <label>Extra lift of the chosen one <output id="liftOut">18%</output><input id="lift" type="range" min="0" max="80" step="1" value="18"></label>
-   <label>Lean back <output id="backOut">23°</output><input id="back" type="range" min="0" max="45" step="1" value="23"></label>
-   <label>Lean forward, at most <output id="fwdOut">38°</output><input id="fwd" type="range" min="10" max="60" step="1" value="38"></label>
+   <label>Gap between records <output id="gapOut">140</output><input id="gap" type="range" min="20" max="140" step="2" value="140"></label>
+   <label>Extra lift of the chosen one <output id="liftOut">69%</output><input id="lift" type="range" min="0" max="100" step="1" value="69"></label>
+   <label>Lean back <output id="backOut">45°</output><input id="back" type="range" min="0" max="45" step="1" value="45"></label>
+   <label>Lean forward, at most <output id="fwdOut">60°</output><input id="fwd" type="range" min="10" max="60" step="1" value="60"></label>
    <h2>Frame by frame</h2>
    <label>Flip from the record before <output id="kOut">100%</output><input id="k" type="range" min="0" max="1" step="0.01" value="1"></label>
    <pre id="tuned"></pre>
@@ -272,10 +272,12 @@ const mark = () => { [...list.children].forEach((li, i) =>
 function flat(){
   const c = $("flat"); if (!c || !fold || mode !== "records") return;
   const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height);
-  x.drawImage(cover(fold.selected()).image, 0, 0);
+  if (fold.selected() >= 0) x.drawImage(cover(fold.selected()).image, 0, 0);
   document.querySelectorAll("#styles button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.style === style)));
   document.querySelectorAll("#cuts button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.cut === cut)));
 }
+// nothing hovered: they all sit back down in the crate
+function rest(){ if (mode === "records" && fold.selected() !== -1) { fold.select(-1, val("flipMs")); mark(); } }
 function choose(i){
   const n = list.children.length;
   i = Math.max(0, Math.min(n - 1, i));
@@ -284,7 +286,7 @@ function choose(i){
 }
 // the two fronts sit their records differently, so each starts from its own values
 function defaults(){
-  const v = frontWall === "up" ? { lift: 18, back: 23, gap: 134, fwd: 38, flip: 700 }
+  const v = frontWall === "up" ? { lift: 69, back: 45, gap: 140, fwd: 60, flip: 520 }
                                : { lift: 30, back: 24, gap: 80, fwd: 60, flip: 260 };
   $("lift").value = v.lift; $("liftOut").textContent = v.lift + "%";
   $("back").value = v.back; $("backOut").textContent = v.back + "°";
@@ -320,10 +322,11 @@ function go(m){
   history.replaceState(null, "", "#" + m);
 }
 function box(){
-  const s = $("stage").getBoundingClientRect(), size = Math.min(420, s.width * 0.42);
-  const b = { left: s.left + 40, top: s.top + (s.height - size) / 2, size };
+  const s = $("stage").getBoundingClientRect(), a = fold.recordsAspect;
+  const size = Math.min(420, s.width * 0.42, (s.height - 40) * a);
+  const b = { left: s.left + 40, top: s.top + (s.height - size / a) / 2, size };
   Object.assign(target.style, { display: "block", left: b.left + "px", top: b.top + "px",
-                                width: size + "px", height: size + "px" });
+                                width: size + "px", height: size / a + "px" });
   return b;
 }
 
@@ -402,11 +405,14 @@ $("k").addEventListener("input", () => {
 let axis = "depth";
 mount.addEventListener("mousemove", e => { if (mode !== "records" || side) return;
   const i = axis === "pick" ? fold.pick(e.clientX, e.clientY) : fold.through(e.clientX, e.clientY, axis);
-  if (i >= 0) choose(i); });
+  if (i >= 0) choose(i); else rest(); });
+mount.addEventListener("mouseleave", rest);
+list.addEventListener("mouseleave", rest);
 let wheel = 0;
 mount.addEventListener("wheel", e => { if (mode !== "records") return; e.preventDefault();
   wheel += e.deltaY; if (Math.abs(wheel) > 40) { choose(fold.selected() + Math.sign(wheel)); wheel = 0; } }, { passive: false });
 addEventListener("keydown", e => { if (mode !== "records") return;
+  if (e.key === "Escape") rest();
   if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); choose(fold.selected() + 1); }
   if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); choose(fold.selected() - 1); } });
 addEventListener("resize", () => { if (fold) fold.resize(560); if (mode === "flight" && !flown) box(); });

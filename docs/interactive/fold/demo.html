@@ -55,7 +55,7 @@ const fold = createCrateFold({ THREE, mount: b, size: 520, view, front: frontWal
 if (n) {
   if (view !== "records") fold.setOpenFront();
   fold.setRecords(Array.from({length: n}, (_, i) => cover(i)));
-  const to = parseInt(q.get("sel") || "0", 10);
+  const to = parseInt(q.get("sel") ?? "-1", 10);
   fold.seek({from: q.has("from") ? parseInt(q.get("from"), 10) : to, to,
              k: q.has("k") ? parseFloat(q.get("k")) : 1});
   if (q.has("drop")) fold.seek({drop: parseFloat(q.get("drop"))});
@@ -65,7 +65,7 @@ addEventListener("resize", () => fold.resize(520));
 
 // ---- probes, for review only
 const probe = q.get("probe");
-const BOX = {left: 40, top: 110, size: 360};
+const BOX = {left: 40, top: 60, size: 360};
 if (probe === "paint") {
   // what the collection page does: its own crate, painted straight into the box
   b.style.cssText = `position:fixed;left:${BOX.left}px;top:${BOX.top}px;width:${BOX.size}px`;
@@ -107,7 +107,7 @@ if (probe === "logic") {
     order = Math.max(order, g.order); backGap = Math.min(backGap, g.backGap);
     rimGap = Math.min(rimGap, g.frontGap); neighbour = Math.min(neighbour, g.neighbour);
   };
-  const script = {0: 5, 88: 0, 168: 3, 296: 4, 336: 1, 376: 5, 696: 2};   // multiples of 8
+  const script = {0: 5, 88: 0, 168: -1, 296: 4, 336: 1, 376: -1, 440: 5, 696: 2, 1000: -1};   // multiples of 8
   out.selects = 0;
   for (let ms = 0; ms <= 1400; ms += 8) {
     if (script[ms] !== undefined) { fold.select(script[ms]); out.selects++; }

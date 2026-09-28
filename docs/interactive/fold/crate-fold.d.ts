@@ -14,7 +14,10 @@ export type CrateRecord = {
   tab?: number;
 };
 
-/** A square on the screen, in CSS pixels. */
+/**
+ * A box on the screen, in CSS pixels. `size` is its WIDTH. For flyTo() its height is
+ * size / recordsAspect.
+ */
 export type CrateBox = { left: number; top: number; size: number };
 
 export type CrateFoldTextures = {
@@ -49,6 +52,12 @@ export type CrateFoldOptions = {
    * the crate's are and they darken down inside it. false keeps the cover's own pixels.
    */
   recordLit?: boolean;
+  /**
+   * Shape of the records frame, width over height. Default 0.72: a portrait frame with the crate
+   * at its foot and room above for a folder drawn out of it. A canvas with view "records" is this
+   * shape, and flyTo() lands in a box this shape.
+   */
+  recordsAspect?: number;
   /** Corner radius of a record, in crate units. Default 30. */
   recordRadius?: number;
   /**
@@ -96,12 +105,14 @@ export type CrateFoldHandle = {
    */
   dropRecords(records: CrateRecord[], ms?: number, then?: number): Promise<void>;
   /**
-   * Flip to a record. Those in front lean forward over the folded front wall, it stands upright
+   * Flip to a record, or pass -1 for none: every record sits down in the crate. None is the
+   * state records start in, and the one to return to when the pointer leaves.
+   * Those in front lean forward over the folded front wall, it stands upright
    * and lifts, those behind lean back. Interruptible: call it as often as the pointer moves.
-   * `flipDuration` by default (700ms front up, 260ms front down), cubic-bezier(0.2, 0, 0, 1).
+   * `flipDuration` by default (520ms front up, 260ms front down), cubic-bezier(0.2, 0, 0, 1).
    */
   select(index: number, ms?: number): Promise<void>;
-  /** The record select() last aimed at. */
+  /** The record select() last aimed at, or -1 when none is chosen. */
   selected(): number;
   /**
    * The record the pointer is asking for as it moves through the crate, or -1 when it is not
@@ -143,6 +154,9 @@ export type CrateFoldHandle = {
   tabHeight: number;
   tabWidth: number;
   tabRun: number;
+  /** Shape of this canvas, width over height: 1, or recordsAspect for view "records" */
+  aspect: number;
+  recordsAspect: number;
   /** Length of the fold in milliseconds */
   duration: number;
   /** Length of present() at its own pace, in milliseconds */
