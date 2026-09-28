@@ -78,7 +78,7 @@
    <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
    <h2>The items</h2>
    <p class="note">A folder in one of the icon's hues, the crate's own colour, darker. No picture, no words. The list names it.</p>
-   <div class="row" id="styles"><button data-style="moulded">Moulded like the crate</button><button data-style="blank">Plain</button></div>
+   <div class="row" id="styles"><button data-style="moulded">Moulded like the crate</button><button data-style="plain">Plain</button></div>
    <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
    <label>Darker than the crate by <output id="darkOut">70%</output><input id="dark" type="range" min="0" max="90" step="1" value="70"></label>
    <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
@@ -117,6 +117,7 @@
 <script type="module">
 import * as THREE from "three";
 import { createCrateFold } from "./crate-fold.js";
+import { drawItem, deepen } from "./crate-items.js";
 
 const $ = id => document.getElementById(id);
 const mount = $("mount"), list = $("list"), state = $("state"), host = $("host"), target = $("target");
@@ -133,17 +134,10 @@ const ITEMS = [
   { name: "Sesame", line: "Proving demand before building", year: "2021 – 2022", tags: ["Growth", "A/B testing"], hue: "#C6BFD8" },
   { name: "AI Digital Advisor", line: "From POC to production for 4.5M users", year: "2025", tags: ["Multi-agent", "Guardrails"], hue: "#E8B69B" },
 ];
-// An item is never the crate's colour, nor one close enough to be mistaken for it: a folder
-// that matches the crate reads as part of the crate. The icon's palette, less those.
 const CRATE = "#C0614B";
-const PALETTE = ["#C3D2E1", "#9EB29A", "#C6BFD8", "#EEDFA6", "#E8B69B", "#9E9B63",
-                 "#C7C7C1", "#D79A4D", "#EBE9E3", "#55565A", "#3A3A3C", "#C0614B"];
-const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
-const apart = (a, b) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
 // Every item is the crate's own colour, darker. They are told apart by where their tabs sit
 // and by the list, not by colour: the crate and what is in it read as one object.
 let tone = "dark", darker = 0.70;
-const deepen = (c, by) => "#" + rgb(c).map(v => Math.round(v * (1 - by)).toString(16).padStart(2, "0")).join("");
 const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
                      hue: deepen(CRATE, darker) });
 const NAMES = ITEMS.map(v => v.name);
@@ -154,99 +148,9 @@ const pics = Promise.all(ITEMS.map((_, i) => new Promise(done => {
   im.src = `local/${i}.png`;
 })));
 
-function shade(hex, by){
-  const n = parseInt(hex.slice(1), 16);
-  const f = v => Math.max(0, Math.min(255, Math.round(v + by)));
-  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
-}
-const dark = hex => { const n = parseInt(hex.slice(1), 16);
-  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 140; };
-const ink = hex => dark(hex) ? "rgba(255,255,255,.95)" : "rgba(28,26,24,.92)";
-const soft = hex => dark(hex) ? "rgba(255,255,255,.66)" : "rgba(28,26,24,.58)";
-function rbox(x, X, Y, W, H, R){ x.beginPath(); x.roundRect(X, Y, W, H, R); }
-function picture(x, im, X, Y, W, H, R){
-  x.save(); rbox(x, X, Y, W, H, R); x.clip();
-  if (im) { const s = Math.max(W / im.width, H / im.height);
-    x.drawImage(im, X + (W - im.width * s) / 2, Y + (H - im.height * s) / 2, im.width * s, im.height * s); }
-  else { x.fillStyle = "rgba(0,0,0,.18)"; x.fillRect(X, Y, W, H); }
-  x.restore();
-}
-function fit(x, text, max, size, weight = 700){
-  do { x.font = `${weight} ${size}px -apple-system, "Helvetica Neue", sans-serif`; size -= 2; }
-  while (x.measureText(text).width > max && size > 20);
-}
-const FONT = (w, s) => `${w} ${s}px -apple-system, "Helvetica Neue", sans-serif`;
-function slots(x, X, Y, n, hue, by){ for (let k = 0; k < n; k++) { x.fillStyle = shade(hue, by); rbox(x, X + k * 38, Y, 17, 70, 6); x.fill(); } }
-
-// ONE folder, drawn one way. The tab set the rules: a flat colour from the icon's palette, a
-// single weight of type, nothing framed or boxed in. So the body is the same sheet as the tab --
-// one fill and one lit rim that run round the whole silhouette, tab included, with no seam where
-// they meet. The three variants differ only in what is placed ON that sheet.
-function silhouette(x, W, H, top, at, r){
-  x.beginPath();
-  if (at === undefined) { x.roundRect(0, 0, W, H, r); return; }
-  const tw = W * fold.tabWidth, run = W * fold.tabRun, rt = Math.min(r, top * 0.9);
-  const x0 = at <= 0 ? 0 : run + at * (W - tw - run * 2), x1 = x0 + tw;
-  x.moveTo(r, H); x.lineTo(W - r, H); x.arcTo(W, H, W, H - r, r);
-  if (x1 + run >= W - r) { x.lineTo(W, rt); x.arcTo(W, 0, W - rt, 0, rt); }
-  else { x.lineTo(W, top + r); x.arcTo(W, top, W - r, top, r); x.lineTo(x1 + run, top);
-         x.bezierCurveTo(x1 + run * 0.45, top, x1 + run * 0.55, 0, x1, 0); }
-  if (x0 <= 0) { x.lineTo(rt, 0); x.arcTo(0, 0, 0, rt, rt); }
-  else { x.lineTo(x0, 0); x.bezierCurveTo(x0 - run * 0.55, 0, x0 - run * 0.45, top, x0 - run, top);
-         x.lineTo(r, top); x.arcTo(0, top, 0, top + r, r); }
-  x.lineTo(0, H - r); x.arcTo(0, H, r, H, r); x.closePath();
-}
-const TYPE = (s, w = 600) => `${w} ${s}px -apple-system, "Helvetica Neue", sans-serif`;
-function sheet(x, it, W, H, top, at){
-  const c = it.hue, r = 46;
-  silhouette(x, W, H, top, at, r); x.save(); x.clip();
-  // the icon's own body: lit from the top left, a little deeper at the foot
-  const g = x.createLinearGradient(W * 0.1, 0, W * 0.4, H);
-  g.addColorStop(0, shade(c, 12)); g.addColorStop(0.6, c); g.addColorStop(1, shade(c, -10));
-  x.fillStyle = g; x.fillRect(0, 0, W, H);
-  // the rim, an inside stroke, all the way round
-  silhouette(x, W, H, top, at, r); x.lineWidth = 22; x.strokeStyle = shade(c, 30); x.stroke();
-  x.lineWidth = 3; x.strokeStyle = shade(c, -46); x.globalAlpha = 0.5; x.stroke(); x.globalAlpha = 1;
-  x.restore();
-  // The tab carries nothing. It is a shape and a colour, as it is on the icon.
-}
-// No picture on an item, no label on its tab, no words on its face. What is left is the
-// object: a folder in one of the icon's colours. The list beside the crate does the naming.
-function moulding(x, it, W, H, top){
-  const c = it.hue, X = 64, Y = top + 60, w = W - 128, hh = H - top - 60 - 150;
-  x.fillStyle = shade(c, -12); rbox(x, X, Y, w, hh, 22); x.fill();
-  x.lineWidth = 3; x.strokeStyle = shade(c, -40); x.globalAlpha = 0.55; rbox(x, X, Y, w, hh, 22); x.stroke();
-  x.globalAlpha = 1; x.strokeStyle = shade(c, 22); rbox(x, X + 14, Y + 14, w - 28, hh - 28, 14); x.stroke();
-  // two rows of slots, as on the crate's face
-  const n = 18, pitch = (w - 120) / n, sh = (hh - 150) / 2;
-  for (let r = 0; r < 2; r++) for (let k = 0; k < n; k++) {
-    const sx = X + 60 + k * pitch + (pitch - 20) / 2, sy = Y + 50 + r * (sh + 50);
-    x.fillStyle = shade(c, 26); rbox(x, sx, sy + 3, 20, sh, 7); x.fill();
-    x.fillStyle = shade(c, -58); rbox(x, sx, sy, 20, sh, 7); x.fill();
-  }
-  // the foot rail
-  x.fillStyle = shade(c, -6); x.fillRect(11, H - 118, W - 22, 107);
-  x.fillStyle = shade(c, 28); x.fillRect(11, H - 118, W - 22, 3);
-}
-const STYLES = {
-  blank(x, it, W, H, top, at){ sheet(x, it, W, H, top, at); },
-  moulded(x, it, W, H, top, at){
-    sheet(x, it, W, H, top, at);
-    x.save(); silhouette(x, W, H, top, at, 46); x.clip(); moulding(x, it, W, H, top);
-    // the rim again, over the rail's ends
-    silhouette(x, W, H, top, at, 46); x.lineWidth = 22; x.strokeStyle = shade(it.hue, 30); x.stroke();
-    x.restore();
-  },
-};
+// The items are drawn by crate-items.js, the same module the portfolio uses.
 let style = "moulded", cut = "folder";
-function cover(i){
-  const W = 1176, H = 894, c = document.createElement("canvas"); c.width = W; c.height = H;
-  const x = c.getContext("2d"), it = item(i);
-  const at = cut === "folder" ? [0, 0.5, 1][i % 3] : undefined;
-  const top = at === undefined ? 0 : Math.round(H * fold.tabHeight);
-  STYLES[style](x, it, W, H, top, at);
-  return { image: c, aspect: W / H, tab: at, edge: parseInt(it.hue.slice(1), 16) };
-}
+const cover = i => drawItem({ crate: CRATE, index: i, fold, darker, style, cut });
 const covers = n => Array.from({ length: n }, (_, i) => cover(i));
 
 let fold = null, mode = null, side = false, flown = false, frontWall = "up";
@@ -432,7 +336,7 @@ addEventListener("resize", () => { if (fold) fold.resize(560); if (mode === "fli
 
 await pics;
 const want = location.hash.slice(1).split("/");
-if (STYLES[want[1]]) style = want[1];
+if (want[1] === "moulded" || want[1] === "plain") style = want[1];
 if (want[2] === "card" || want[2] === "folder") cut = want[2];
 go(["fold", "open", "records", "flight"].includes(want[0]) ? want[0] : "records");
 if (want[4] === "light") setTheme("light");

@@ -77,6 +77,34 @@ gave while this was built and the reasons behind it.
 The earlier component, `docs/interactive/react/CrateFold.tsx`, squashed the
 icon vertically. It is superseded and kept only as history. Do not ship it.
 
+## 2b. The record crate
+
+Settled with Cameron in the playground on 28 Sep 2026. The reasons behind
+each decision are in `docs/explorations/fold-notes.md`, from "The record
+crate" onward.
+
+| File | What it is |
+|---|---|
+| `crate-fold.js` + `crate-fold.d.ts` | The crate, including the display state and the records |
+| `crate-items.js` + `crate-items.d.ts` | Draws an item. Copy it; do not redraw the items by hand |
+| `playground.html` | Every interaction, live, with the settled values as defaults |
+| `serve.sh` | Serves the folder and opens the playground |
+
+What was decided:
+
+| Decision | Setting |
+|---|---|
+| Front of the crate | Stays up. The display crate is the whole crate, so it is still the icon |
+| Chosen item | Slides straight up until its foot clears the front wall, then 69% of its height more |
+| Steering | `through()`: the cursor moving through the crate, front to back |
+| Nothing hovered | `select(-1)`: every item sits down in the crate |
+| Flip | 520 ms, cubic-bezier(0.2, 0, 0, 1) |
+| Item cut | Folder, tabs staggered left, middle, right |
+| Item face | Moulded like the crate. No picture, no label on the tab, no words |
+| Item colour | The crate's colour, 70% darker. The same on a light or dark page |
+| Item light | Lit by the crate's lamps, and shaded down inside it |
+| Frame | Portrait, 0.72 wide to 1 tall |
+
 ## 3. Draft content
 
 `docs/portfolio-item.json` is a study object in your existing
