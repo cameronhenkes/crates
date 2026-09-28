@@ -601,7 +601,10 @@ function present(ms = P_TOTAL, to = 1){
 const REC_T = 6;                          // thickness of a record
 const REC_Y = FLOOR_Y + TH + 4;           // standing on the front wall where it lies
 const REC_W = 760, REC_HMAX = 540;
-const REC_FRONT = 398, REC_GAP = 80, REC_BACK = -70;
+const REC_FRONT = 398, REC_BACK = -70;
+// What a designer would want to try by hand: tune() changes these and lays the records again.
+const TUNE = {gap: 80, lift: 0.30, backLean: 24, forwardLean: 60};
+let listed = [];
 const RIM_EDGE = {z: D/2 - FASCIA, y: RIM};   // the top inner edge of the base's front face
 let records = [], sel = 0, flip = 0, lean = {fwd: 0, back: 0}, lift = 0;
 
@@ -614,8 +617,9 @@ function setRecords(list){
     scene.remove(r.pivot); r.mesh.geometry.dispose();
     for (const m of r.mesh.material) { if (m.map) m.map.dispose(); m.dispose(); }
   }
+  listed = list;
   const n = list.length;
-  const gap = n > 1 ? Math.min(REC_GAP, (REC_FRONT - REC_BACK) / (n - 1)) : 0;
+  const gap = n > 1 ? Math.min(TUNE.gap, (REC_FRONT - REC_BACK) / (n - 1)) : 0;
   let tallest = 0;
   records = list.map((it, i) => {
     let w = REC_W, h = w / it.aspect;
@@ -640,16 +644,16 @@ function setRecords(list){
   // d is the clearance between the record's lower face and that edge; bisect for the angle.
   const clear = a => (RIM_EDGE.z - REC_FRONT) * Math.cos(a)
                    - (RIM_EDGE.y - REC_Y) * Math.sin(a) - REC_T / 2 - 2;
-  let lo = 0, hi = 60 * Math.PI/180;
+  let lo = 0, hi = TUNE.forwardLean * Math.PI/180;
   if (clear(hi) < 0) for (let i = 0; i < 30; i++) { const m = (lo+hi)/2; if (clear(m) > 0) lo = m; else hi = m; }
   else lo = hi;
   // Backward lean: until the last record would touch the back wall, and never more than 24 deg.
   const zl = n ? REC_FRONT - (n - 1) * gap : 0;
   const reach = (zl - REC_T/2 - 3) - (-END_Z + TH/2);
-  lean = {fwd: lo, back: Math.min(24 * Math.PI/180, Math.asin(Math.min(1, Math.max(0, reach / (tallest || 1)))))};
+  lean = {fwd: lo, back: Math.min(TUNE.backLean * Math.PI/180, Math.asin(Math.min(1, Math.max(0, reach / (tallest || 1)))))};
   // Lift: enough that the record in front, leaning, does not cover the foot of the chosen one
   // from where the records camera sits.
-  lift = Math.round(tallest * 0.30);
+  lift = Math.round(tallest * TUNE.lift);
   sel = Math.max(0, Math.min(sel, n - 1));
   for (const [i, r] of records.entries()) {
     const g = goal(i, sel); r.ang = r.a1 = g.ang; r.up = r.u1 = g.up; place(r);
@@ -737,6 +741,13 @@ function resize(px){
   apply(t);
 }
 const selected = () => sel;
+/** Change how the records sit: {gap, lift, backLean, forwardLean}. Forward lean is a ceiling;
+ *  the record still stops where it would rest on the rim. Returns the values in force. */
+function tune(v = {}){
+  Object.assign(TUNE, v);
+  if (listed.length) setRecords(listed);
+  return {...TUNE, forwardLeanActual: +(lean.fwd * 180 / Math.PI).toFixed(1), liftUnits: lift};
+}
 /** For review: paint one instant. `present` is 0..1 through the walls rising; `from`, `to` and
  *  `k` paint the flip from one record to another at k, 0..1 in time; `flight` paints flyTo
  *  part-way. Nothing animates. */
@@ -776,7 +787,8 @@ function dispose(){
 }
 manager.onLoad = () => { if (!dead) { apply(t); onReady(); } };
 apply(t);
+if (view === "records") settled();
 return { toggle, set, play, takeover, dolly, land, setPrints,
-         setOpenFront, present, setRecords, dropRecords, select, selected, pick, flyTo, resize, seek, __camera, __angles,
+         setOpenFront, present, setRecords, dropRecords, select, selected, pick, flyTo, resize, tune, seek, __camera, __angles,
          dispose, duration: TOTAL, presentDuration: P_TOTAL };
 }
