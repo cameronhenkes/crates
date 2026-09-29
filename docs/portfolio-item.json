@@ -1,0 +1,156 @@
+{
+  "id": "crates",
+  "slug": "crates",
+  "protected": false,
+  "title": "Crates: A Folder Icon System, and the Tool That Applies It",
+  "description": "A parametric macOS folder icon drawn from one hex, and the command-line tool that puts it on a hundred folders without turning them into noise. Open source.",
+  "image": "/images/projects/crates/in-finder.png",
+  "tags": [
+    "Design engineering",
+    "Open source",
+    "macOS",
+    "Design systems"
+  ],
+  "date": "2026",
+  "longDescription": "I saw a folding produce crate drawn in the silhouette of a macOS folder and wanted it on my own machine. What I actually wanted was every colour of it, on a hundred folders, without the result looking like confetti. So the piece is really two things: an icon that is generated rather than drawn, and a tool that decides which folder gets which colour.",
+  "sections": [
+    {
+      "title": "One hex in, a whole object out",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "The crate is not a drawing I recoloured twelve times. It is a generator: you give it a body colour and it derives every surface from that one value — the lit top flange, the rim highlight, the recessed side walls, the shadow inside each perforation."
+        },
+        {
+          "type": "text",
+          "text": "The derivation happens in OKLab rather than HSL, and that choice is doing real work. Perceptual lightness offsets hold the same relationships across a pale butter and a near-black ink. In HSL the same offsets would blow out at one end and collapse at the other. A new colour is an argument, not a repaint."
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/anatomy.png",
+          "alt": "The crate with its parametric dimensions called out, and the OKLab-derived colour ramp beneath",
+          "caption": "Every dimension lives in one geometry dict, measured off a reference photo. Every shade is an offset from the body colour."
+        },
+        {
+          "type": "text",
+          "text": "Named, and then measured. The redline is generated from the same numbers the icon is drawn from, so the two cannot disagree."
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/redline-dimensions.png",
+          "alt": "The crate icon with every dimension marked in red: 900 wide, 684 tall, a tab 330 wide rising 96, rails of 108, a foot of 80",
+          "caption": "A folder's silhouette, a crate's construction."
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/palette.png",
+          "alt": "Twelve crate folder icons in different colours",
+          "caption": "Twelve bundled colours. Any hex works."
+        }
+      ]
+    },
+    {
+      "title": "The part that is actually hard",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Drawing one good icon is an afternoon. Putting it on a hundred folders without the result looking like confetti is the design problem."
+        },
+        {
+          "type": "text",
+          "text": "My first pass assigned a random colour per folder. It looked like a mistake — near-identical colours kept landing next to each other, and colour meant nothing, so it was noise with extra steps. What works is dealing a shuffled palette so every colour is used before any repeats, and placing the repeats far apart in the order Finder sorts them."
+        },
+        {
+          "type": "text",
+          "text": "Better still, where the folder tree already means something, is inheritance: every project takes its category's colour. Colour stops being decoration and starts answering a question — which area is this."
+        },
+        {
+          "type": "pullQuote",
+          "text": "Random is not the same as varied. Dealing a shuffled deck is varied; picking at random each time just clusters.",
+          "attribution": "What the first version got wrong"
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/in-finder.png",
+          "alt": "A Finder window of twelve folders, each a differently coloured crate, on the macOS desktop",
+          "caption": "A capture of Finder, not a drawing of it."
+        }
+      ]
+    },
+    {
+      "title": "Craft decisions a viewer would otherwise miss",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "The perforations are cut through the artwork with a mask rather than filled with black. The black in the photograph I worked from was the backdrop, not the object — so on a real desktop, the wallpaper shows through every hole."
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/transparency.png",
+          "alt": "Three crate icons over the Golden Gate Bridge, with the bridge and rocks visible through every perforation",
+          "caption": "Deliberately busy background, to prove the holes are holes."
+        },
+        {
+          "type": "text",
+          "text": "The icon is also drawn twice. The full artwork has seventy-two perforations, and below about 48px they stop being detail and become grey haze. So there is a second, simplified drawing — fifteen larger slots, a fatter rim, no mouldings — used for the 16 and 32px slots of the iconset. Apple does the same in its own icons. It is the difference between a recognisable folder and a smudge in a sidebar."
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/sizes.png",
+          "alt": "Both detail levels shown from 256px down to 16px",
+          "caption": "Full artwork above, simplified below. The difference only matters at the two smallest sizes, which is exactly where icons get used most."
+        }
+      ]
+    },
+    {
+      "title": "Making it fold",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "The one thing a still image cannot tell you about this object is that it folds. So the icon is the front of a crate, and clicking it folds the crate flat the way the real one folds: front, back, left side, right side."
+        },
+        {
+          "type": "text",
+          "text": "Hover is deliberately almost nothing, a four pixel lift over 140ms. It is seen constantly, so it says 'this responds' and gets out of the way. The click is where the budget goes, because it is rare and it explains something."
+        },
+        {
+          "type": "video",
+          "src": "/images/projects/crates/fold.mp4",
+          "poster": "/images/projects/crates/motion-fold.png",
+          "alt": "The crate folding flat, front then back then left then right, and standing up again",
+          "caption": "1.9 seconds each way. Each end wall is squeezed, pops free, then is lowered. The sides follow in one easy motion."
+        },
+        {
+          "type": "text",
+          "text": "The first version squashed the icon vertically. It looked like folding and explained nothing, because that is not how the object works. The version that shipped came from studying the real mechanism and then holding the animation to it: walls with thickness, hinges with somewhere to sit, latches that release before anything moves, and no part allowed to pass through another."
+        },
+        {
+          "type": "text",
+          "text": "The hardest constraint was that the resting frame had to stay the icon. A real crate is wider than its front wall, so for a long time the base was hidden and faded in. That fade was the last thing to go. The fix was to read the icon differently: its bottom band is the base, and the strip at each edge is a side wall seen end on. Once the icon was the elevation of the object rather than a picture stuck to the front of it, nothing needed hiding."
+        }
+      ]
+    },
+    {
+      "title": "Shipped",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "It is open source, MIT, with no install dependencies — it uses tools that already ship with macOS. Styles are pluggable, so the crate is the bundled one rather than the only one."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Apply to a folder, a Finder alias, or the boot volume",
+            "Sweep a tree under an inherit or shuffle scheme, with a dry run first",
+            "Twelve bundled colours, or any hex",
+            "Handles the three things that bite: the Icon file dirtying git repos, iCloud-synced directories, and Finder's icon cache"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "github.com/cameronhenkes/crates"
+        }
+      ]
+    }
+  ]
+}

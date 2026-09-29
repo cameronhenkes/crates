@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate fold — the icon is the front</title>
+<style>
+/* Rotation directions are DERIVED, not eyeballed. CSS: +z is toward the
+   viewer; rotateX(t) sends (0,-1,0) to (0,-cos t,-sin t); rotateY(t) sends
+   (1,0,0) to (cos t,0,-sin t). Everything below follows from those two.
+
+   No scale() anywhere in the 3D chain. Scaling a preserve-3d ancestor
+   rescales z along with x and y, which silently flattens depth ordering --
+   that is what made three earlier rounds of sign-flipping meaningless.
+   The panes are sized in final pixels instead. */
+:root{--ease:cubic-bezier(0.2,0,0,1);--d:1100ms;
+  --W:306px;--H:233px;--D:245px;--tilt:34deg}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:#14161a;color:#e9ecf1;
+ font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:28px}
+h1{font-size:16px;margin:0;font-weight:600;text-align:center}
+h1 small{display:block;font-weight:400;color:#8b93a1;font-size:12.5px;margin-top:5px}
+.btn{appearance:none;background:none;border:0;padding:0;cursor:pointer;
+ border-radius:16px;display:block}
+.btn:focus-visible{outline:2px solid currentColor;outline-offset:8px}
+.stage{position:relative;perspective:900px;perspective-origin:50% 40%;
+ width:var(--W);height:calc(var(--H) + var(--D))}
+.rig{position:absolute;left:0;top:0;width:var(--W);height:var(--H);
+ transform-origin:50% 100%;transform:rotateX(0deg);
+ transform-style:preserve-3d;transition:transform var(--d) var(--ease)}
+.pane{position:absolute;transform-style:preserve-3d;
+ transition:transform calc(var(--d)*.30) var(--ease)}
+.pane img{width:100%;height:100%;display:block}
+
+/* Browsers sort preserve-3d siblings by transformed centroid depth, so two
+   planes that intersect -- which folding walls always do at their hinges --
+   swap order in a single frame as one centroid crosses the other. That is
+   the pop. Staggering each wall a few px in z stops them ever tying, which
+   removes most of it; it cannot remove all of it, because the planes really
+   do cross. A per-pixel depth renderer (WebGL) is the only complete fix. */
+.front{--z:3px;--stack:0px} .back{--z:0px;--stack:4px}
+.left{--z:2px;--stack:8px}  .right{--z:1px;--stack:12px}
+
+/* The icon IS the front wall. Hinged on its bottom edge, body above it. */
+.front{inset:0;transform-origin:50% 100%;transform:translateZ(var(--z)) rotateX(0deg)}
+/* falls AWAY: body at -y must reach -z, so -sin t = -1, t = +90 */
+[data-folded="true"] .front{transform:translateZ(var(--z)) rotateX(90deg) translateZ(var(--stack))}
+
+.back{inset:0;transform-origin:50% 100%;transform:translateZ(calc(-1*var(--D)))}
+/* falls TOWARD you: -sin t = +1, t = -90 */
+[data-folded="true"] .back{transform:translateZ(calc(-1*var(--D))) rotateX(-90deg) translateZ(var(--stack));
+ transition-delay:calc(var(--d)*.25)}
+
+.floor{left:0;top:var(--H);width:var(--W);height:var(--D);
+ transform-origin:50% 0%;transform:rotateX(-90deg)}
+
+/* sides: body must reach -z. left extends +x, so rotateY(+90);
+   right extends -x from its right edge, so rotateY(-90). */
+.left{left:0;top:0;width:var(--D);height:var(--H);
+ transform-origin:0% 100%;transform:translateZ(var(--z)) rotateY(90deg)}
+.right{left:calc(var(--W) - var(--D));top:0;width:var(--D);height:var(--H);
+ transform-origin:100% 100%;transform:translateZ(var(--z)) rotateY(-90deg)}
+/* fold inward: both need local rotateX(-90) */
+[data-folded="true"] .left{transform:translateZ(var(--z)) rotateY(90deg) rotateX(-90deg) translateZ(var(--stack));
+ transition-delay:calc(var(--d)*.49)}
+[data-folded="true"] .right{transform:translateZ(var(--z)) rotateY(-90deg) rotateX(-90deg) translateZ(var(--stack));
+ transition-delay:calc(var(--d)*.73)}
+
+[data-folded="true"] .rig{transform:rotateX(var(--tilt))}
+[data-folded="false"] .front{transition-delay:calc(var(--d)*.73)}
+[data-folded="false"] .back {transition-delay:calc(var(--d)*.49)}
+[data-folded="false"] .left {transition-delay:calc(var(--d)*.25)}
+
+.state{font-size:12px;color:#8b93a1}.state b{color:#e9ecf1}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms!important;transition-delay:0ms!important}}
+</style></head><body>
+<h1>The icon is the front of the crate
+ <small>Click it. The front falls back, revealing the crate behind it.</small></h1>
+<button class="btn" id="b" data-folded="false" aria-pressed="false" aria-label="Open the crate">
+ <div class="stage"><div class="rig">
+  <div class="pane floor"><img src="pieces/floor.svg" alt=""></div>
+  <div class="pane back"><img src="pieces/back.svg" alt=""></div>
+  <div class="pane left"><img src="pieces/side.svg" alt=""></div>
+  <div class="pane right"><img src="pieces/side.svg" alt=""></div>
+  <div class="pane front"><img src="pieces/base.svg" alt=""></div>
+ </div></div>
+</button>
+<p class="state" id="s">Crate is <b>closed</b> &middot; click to fold the front down</p>
+<script>
+const b=document.getElementById("b"),s=document.getElementById("s");
+b.addEventListener("click",()=>{const f=b.dataset.folded!=="true";
+ b.dataset.folded=String(f);b.setAttribute("aria-pressed",String(f));
+ s.innerHTML="Crate is <b>"+(f?"open, folded flat":"closed")+"</b> &middot; click to "+(f?"close":"fold the front down");});
+</script></body></html>

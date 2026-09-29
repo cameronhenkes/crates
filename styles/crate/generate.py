@@ -88,6 +88,7 @@ G = dict(
     TAB_COLS=7, TAB_SLOT_W=19, TAB_SLOT_H=60,
     TAB_X0=105, TAB_X1=299, TAB_Y=42,
     FEET=5, FOOT_W=76,
+    PANEL_SHORT=300, PANEL_LONG=248,  # laid-down wall depths
     LUG_AT=0.20, LUG_H=62, LUG_OUT=9,   # stacking lugs on the side walls
 )
 
@@ -114,10 +115,85 @@ def silhouette(g):
     )
 
 
+
+def laid_panel(x, y, w, h, hinge, lit, hi, deep, cavity):
+    """A wall lying flat on the base, hinged along one edge.
+
+    This shows the wall's OUTER face. A wall hinged at the base and folding
+    inward rotates its inner face down onto the floor, so the face left
+    pointing at you is the outside -- smoother, fewer perforations, the ribs
+    running hinge-to-rim. Drawing the inner face here was the first version's
+    mistake.
+    """
+    horiz = hinge in ("left", "right")
+    r = 7
+    o = []                                   # painted back to front
+    # contact shadow, cast away from the hinge onto the floor below
+    dx = (6 if hinge == "left" else -6) if horiz else 0
+    dy = 0 if horiz else (6 if hinge == "top" else -6)
+    o.append(f'<rect x="{x + dx}" y="{y + dy}" width="{w}" height="{h}" '
+             f'rx="{r}" fill="{cavity}" fill-opacity="0.42"/>')
+    o.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" '
+             f'fill="{lit}"/>')
+
+    # the crease at the hinge, and the rim at the free edge
+    if horiz:
+        hx = x if hinge == "left" else x + w - 4
+        fx = x + w - 6 if hinge == "left" else x
+        o.append(f'<rect x="{hx}" y="{y}" width="4" height="{h}" '
+                 f'fill="{deep}" fill-opacity="0.55"/>')
+        o.append(f'<rect x="{fx}" y="{y + 3}" width="6" height="{h - 6}" '
+                 f'rx="3" fill="{hi}"/>')
+    else:
+        hy = y if hinge == "top" else y + h - 4
+        fy = y + h - 6 if hinge == "top" else y
+        o.append(f'<rect x="{x}" y="{hy}" width="{w}" height="4" '
+                 f'fill="{deep}" fill-opacity="0.55"/>')
+        o.append(f'<rect x="{x + 3}" y="{fy}" width="{w - 6}" height="6" '
+                 f'rx="3" fill="{hi}"/>')
+
+    # ribs running from hinge to rim, the way the moulding actually stiffens
+    span = h if horiz else w
+    n = max(4, int(span / 62))
+    for i in range(1, n):
+        t = span * i / n
+        if horiz:
+            o.append(f'<rect x="{x + 8}" y="{y + t:.1f}" width="{w - 16}" '
+                     f'height="4" fill="{deep}" fill-opacity="0.30"/>')
+        else:
+            o.append(f'<rect x="{x + t:.1f}" y="{y + 8}" width="4" '
+                     f'height="{h - 16}" fill="{deep}" fill-opacity="0.30"/>')
+
+    # two rows of perforations, parallel to the hinge. These read dark because
+    # the panel is lying ON the base -- you see shadow through them, not sky.
+    sw, sh = 13, 46
+    depth = w if horiz else h
+    for row in (0.52,):
+        if horiz:
+            px = x + depth * row - sw / 2
+            cols = max(3, int(h / 78))
+            for j in range(cols):
+                py = y + 16 + (h - 32 - sh) * (j / max(1, cols - 1))
+                o.append(f'<rect x="{px:.1f}" y="{py:.1f}" width="{sw}" '
+                         f'height="{sh}" rx="4" fill="{cavity}" '
+                         f'fill-opacity="0.8"/>')
+        else:
+            py = y + depth * row - sw / 2
+            cols = max(4, int(w / 78))
+            for j in range(cols):
+                px = x + 16 + (w - 32 - sh) * (j / max(1, cols - 1))
+                o.append(f'<rect x="{px:.1f}" y="{py:.1f}" width="{sh}" '
+                         f'height="{sw}" rx="4" fill="{cavity}" '
+                         f'fill-opacity="0.8"/>')
+    return "".join(o)
+
 # ----------------------------------------------------------------- build ----
 
-def build(body, void_col=None, title="Crate", detail="full"):
-    """void_col None punches the perforations through; a hex fills them."""
+def build(body, void_col=None, title="Crate", detail="full", parts=False):
+    """void_col None punches the perforations through; a hex fills them.
+
+    parts=True wraps each structural section in a class-bearing <g> so the
+    piece can be animated independently."""
     g = dict(G)
     full = detail == "full"
     if not full:
@@ -147,6 +223,12 @@ def build(body, void_col=None, title="Crate", detail="full"):
     p = []
     a = p.append
 
+    def g_open(cls):
+        if parts: a(f'<g class="{cls}">')
+
+    def g_close():
+        if parts: a('</g>')
+
     def slot(x, y, w, h, r):
         holes.append((x, y, w, h, r))
         # the well the hole is sunk into: the most legible cue that these are
@@ -175,6 +257,7 @@ def build(body, void_col=None, title="Crate", detail="full"):
     a(f'<path d="{sil}" fill="url(#body)"/>')
     a('<g clip-path="url(#shell)">')
 
+    g_open('c-floor')
     # recessed floor, double-framed
     a(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" '
       f'rx="12" fill="url(#floor)"/>')
@@ -189,8 +272,41 @@ def build(body, void_col=None, title="Crate", detail="full"):
           f'height="{py1 - py0 - 24}" rx="7" fill="none" stroke="{cavity}" '
           f'stroke-width="1.5" stroke-opacity="0.35"/>')
 
+    g_close()
+
+    g_open('c-divider')
+    # centre divider
+    dx, dw = g["DIV_X"], g["DIV_W"]
+    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="{dw}" height="{py1 - py0}" '
+      f'fill="{base}"/>')
+    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="3" height="{py1 - py0}" '
+      f'fill="{hi}" fill-opacity="0.9"/>')
+    a(f'<rect x="{dx + dw / 2 - 3}" y="{py0}" width="3" height="{py1 - py0}" '
+      f'fill="{cavity}" fill-opacity="0.4"/>')
+
+    g_close()
+
+    g_open('c-grid')
+    # perforation grid
+    pad = g["PANEL_PAD"]
+    sw, sh, sr = g["SLOT_W"], g["SLOT_H"], g["SLOT_R"]
+    rows, cols = g["ROWS"], g["COLS"]
+    gy0, gy1 = g["GRID_Y0"], g["GRID_Y1"]
+    row_pitch = (gy1 - gy0 - sh) / max(rows - 1, 1)
+    spans = ((px0 + pad, dx - dw / 2 - pad), (dx + dw / 2 + pad, px1 - pad))
+    for sx0, sx1 in spans:
+        col_pitch = (sx1 - sx0) / cols
+        for r in range(rows):
+            y = gy0 + r * row_pitch
+            for c in range(cols):
+                x = sx0 + c * col_pitch + (col_pitch - sw) / 2
+                slot(round(x, 1), round(y, 1), sw, sh, sr)
+
+    g_close()
+
     # folded side walls
     for side in (0, 1):
+        g_open('c-wall c-wall-left' if side == 0 else 'c-wall c-wall-right')
         x0 = 0 if side == 0 else W - rail
         a(f'<rect x="{x0}" y="{bt}" width="{rail}" height="{H - bt}" '
           f'fill="{base}"/>')
@@ -217,31 +333,9 @@ def build(body, void_col=None, title="Crate", detail="full"):
                 a(f'<rect x="{bx + 5}" y="{top + i * pitch - 2:.1f}" '
                   f'width="{band - 10}" height="3" rx="1.5" fill="{deep}" '
                   f'fill-opacity="0.35"/>')
+        g_close()
 
-    # centre divider
-    dx, dw = g["DIV_X"], g["DIV_W"]
-    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="{dw}" height="{py1 - py0}" '
-      f'fill="{base}"/>')
-    a(f'<rect x="{dx - dw / 2}" y="{py0}" width="3" height="{py1 - py0}" '
-      f'fill="{hi}" fill-opacity="0.9"/>')
-    a(f'<rect x="{dx + dw / 2 - 3}" y="{py0}" width="3" height="{py1 - py0}" '
-      f'fill="{cavity}" fill-opacity="0.4"/>')
-
-    # perforation grid
-    pad = g["PANEL_PAD"]
-    sw, sh, sr = g["SLOT_W"], g["SLOT_H"], g["SLOT_R"]
-    rows, cols = g["ROWS"], g["COLS"]
-    gy0, gy1 = g["GRID_Y0"], g["GRID_Y1"]
-    row_pitch = (gy1 - gy0 - sh) / max(rows - 1, 1)
-    spans = ((px0 + pad, dx - dw / 2 - pad), (dx + dw / 2 + pad, px1 - pad))
-    for sx0, sx1 in spans:
-        col_pitch = (sx1 - sx0) / cols
-        for r in range(rows):
-            y = gy0 + r * row_pitch
-            for c in range(cols):
-                x = sx0 + c * col_pitch + (col_pitch - sw) / 2
-                slot(round(x, 1), round(y, 1), sw, sh, sr)
-
+    g_open('c-tab')
     # top flange, then the tab repainted over it
     a(f'<rect x="0" y="{bt}" width="{W}" height="{flange}" fill="{lit}"/>')
     a(f'<rect x="0" y="{bt}" width="{W}" height="3" fill="{hi}"/>')
@@ -263,6 +357,9 @@ def build(body, void_col=None, title="Crate", detail="full"):
         x = g["TAB_X0"] + i * tpitch + (tpitch - tsw) / 2
         slot(round(x, 1), g["TAB_Y"], tsw, tsh, sr)
 
+    g_close()
+
+    g_open('c-foot')
     # bottom rail and fold-down feet
     a(f'<rect x="0" y="{H - foot}" width="{W}" height="{foot}" fill="{base}"/>')
     a(f'<rect x="0" y="{H - foot}" width="{W}" height="3" fill="{hi}" '
@@ -276,6 +373,24 @@ def build(body, void_col=None, title="Crate", detail="full"):
             a(f'<rect x="{fx:.1f}" y="{H - foot + 4}" width="{fw}" '
               f'height="44" rx="7" fill="{lit}" fill-opacity="0.4" '
               f'stroke="{deep}" stroke-width="2" stroke-opacity="0.25"/>')
+
+    g_close()
+
+    # Laid-down wall panels, hidden until the fold animates them in. Short
+    # ends first in paint order, long sides over them -- the order the real
+    # crate folds in.
+    if parts:
+        ps, pl = g["PANEL_SHORT"], g["PANEL_LONG"]
+        a('<g class="c-panel c-panel-left">'
+          + laid_panel(0, bt, ps, H - bt, "left", lit, hi, deep, cavity) + '</g>')
+        a('<g class="c-panel c-panel-right">'
+          + laid_panel(W - ps, bt, ps, H - bt, "right", lit, hi, deep, cavity)
+          + '</g>')
+        a('<g class="c-panel c-panel-top">'
+          + laid_panel(0, bt, W, pl, "top", lit, hi, deep, cavity) + '</g>')
+        a('<g class="c-panel c-panel-bottom">'
+          + laid_panel(0, H - pl, W, pl, "bottom", lit, hi, deep, cavity)
+          + '</g>')
 
     a(f'<rect x="0" y="0" width="{W}" height="{H}" fill="url(#sheen)"/>')
     a('</g>')
@@ -340,10 +455,13 @@ def main():
     ap.add_argument("--name", default="Crate", help="title / aria label")
     ap.add_argument("--detail", choices=("full", "simple"), default="full",
                     help="'simple' for the 16/32px iconset slots")
+    ap.add_argument("--parts", action="store_true",
+                    help="wrap structural sections in class-bearing groups, "
+                         "for animation")
     ap.add_argument("-o", "--out", help="write here instead of stdout")
     args = ap.parse_args()
 
-    svg = build(args.colour, args.void, args.name, args.detail)
+    svg = build(args.colour, args.void, args.name, args.detail, args.parts)
     if args.out:
         with open(args.out, "w") as f:
             f.write(svg)

@@ -1,0 +1,77 @@
+/* Motion contract
+   - hover  : affordance only. Seen often, so it stays near the threshold of
+              perception -- a lift and a tighter shadow, 140ms, nothing more.
+   - click  : the explanation. A folding crate keeps its footprint and loses
+              its height, so the fold is a vertical collapse onto its base.
+   - curve  : cubic-bezier(0.2, 0, 0, 1) throughout. Bounce is always 0.
+   - a11y   : real button, focus ring, aria-pressed, and a text label that
+              states the result -- motion is never the only channel. */
+
+.button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  cursor: pointer;
+  border-radius: 18px;
+  -webkit-tap-highlight-color: transparent;
+}
+.button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+}
+
+.lift,
+.fold,
+.img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lift {
+  transform: translateY(0);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.3));
+  transition:
+    transform 140ms cubic-bezier(0.2, 0, 0, 1),
+    filter 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Hover is gated so touch devices never get a stuck hover state. */
+@media (hover: hover) and (pointer: fine) {
+  .button:hover .lift {
+    transform: translateY(-7px);
+    filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.38));
+  }
+}
+.button:active .lift {
+  transform: translateY(-2px) scale(0.985);
+}
+
+.fold {
+  transform-origin: 50% 84%;
+  transition: transform 340ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.folded .fold {
+  transform: scaleY(0.34);
+  transition-delay: 70ms;
+}
+.folded .lift {
+  /* flat sits closer to the surface, so the shadow tightens with it */
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.34));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lift,
+  .fold {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+  .button:hover .lift {
+    transform: none;
+  }
+}

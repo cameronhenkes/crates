@@ -1,0 +1,78 @@
+/* Motion contract
+   - hover  : affordance only. Seen often, so it stays near the threshold of
+              perception -- a small lift, 140ms, nothing more.
+   - click  : the explanation. The crate folds the way the real one does, and
+              that lives in crate-fold.js, not here.
+   - curve  : cubic-bezier(0.2, 0, 0, 1). Bounce is always 0.
+   - a11y   : real button, focus ring, aria-pressed, and a text label that
+              states the result. Reduced motion changes state without travel. */
+
+.button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 1;
+  cursor: pointer;
+  border-radius: 18px;
+  -webkit-tap-highlight-color: transparent;
+}
+.button:disabled {
+  cursor: default;
+}
+.button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+}
+
+.lift {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.stage {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.stage[data-ready="false"] {
+  visibility: hidden;
+}
+
+.poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Hover is gated so touch devices never get a stuck hover state. */
+@media (hover: hover) and (pointer: fine) {
+  .button:not(:disabled):hover .lift {
+    transform: translateY(-4px);
+  }
+}
+.button:not(:disabled):active .lift {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.label {
+  margin: 12px 0 0;
+  font-size: 0.8125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lift {
+    transition-duration: 1ms;
+  }
+  .button:hover .lift {
+    transform: none;
+  }
+}

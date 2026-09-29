@@ -1,0 +1,348 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate playground</title>
+<style>
+ :root{color-scheme:dark;--bg:#14161a;--panel:#1b1e24;--line:#2a2e37;--ink:#e9ecf1;--mute:#8b93a1;--accent:#d8623f}
+ *{box-sizing:border-box}
+ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif}
+ body.light{--bg:#f3f1ec;--panel:#fff;--line:#dedad2;--ink:#1b1d21;--mute:#6b7079;color-scheme:light}
+ main{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:100%}
+ #stage{position:relative;display:flex;align-items:center;justify-content:center;gap:40px;padding:24px;overflow:hidden}
+ #mount{appearance:none;background:none;border:0;padding:0;width:min(560px,100%);max-height:100%;cursor:pointer;border-radius:16px;flex:none}
+ #mount:focus-visible{outline:2px solid var(--ink);outline-offset:6px}
+ #list{list-style:none;margin:0;padding:0;min-width:200px;display:none}
+ #list li{padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--mute);display:flex;gap:10px;align-items:center}
+ #list li[aria-current="true"]{color:var(--ink);background:var(--panel)}
+ #list i{width:10px;height:10px;border-radius:2px;flex:none}
+ aside{background:var(--panel);border-left:1px solid var(--line);padding:20px;overflow:auto}
+ h1{font-size:15px;margin:0 0 2px} .sub{color:var(--mute);font-size:12.5px;margin:0 0 16px}
+ nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:18px}
+ nav button,.row button{appearance:none;border:1px solid var(--line);background:none;color:var(--ink);font:inherit;font-size:12.5px;padding:7px 8px;border-radius:8px;cursor:pointer}
+ nav button[aria-pressed="true"],.row button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+ .row button:hover{border-color:var(--mute)}
+ section{display:none} section.on{display:block}
+ h2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:18px 0 8px;font-weight:600}
+ .row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+ label{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12.5px;margin-bottom:10px}
+ label output{color:var(--mute);font-variant-numeric:tabular-nums}
+ input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+ .note{color:var(--mute);font-size:12px;margin:6px 0 0}
+ #state{position:absolute;left:24px;bottom:18px;color:var(--mute);font-size:12px}
+ #state b{color:var(--ink)}
+ #host{position:fixed;inset:0;pointer-events:none}
+ #target{position:fixed;border:1px dashed var(--line);border-radius:12px;display:none;pointer-events:none}
+ pre{font:11.5px/1.5 ui-monospace,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0 0;white-space:pre-wrap;color:var(--mute)}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script></head><body>
+<main>
+ <div id="stage">
+  <button id="mount" aria-label="The crate"></button>
+  <ul id="list"></ul>
+  <div id="target"></div>
+  <p id="state">Crate is <b>closed</b></p>
+ </div>
+ <aside>
+  <h1>Crate playground</h1>
+  <p class="sub">Every interaction, at full speed or one frame at a time.</p>
+  <nav>
+   <button data-mode="fold">Fold</button><button data-mode="open">Open front</button>
+   <button data-mode="records">Records</button><button data-mode="flight">Flight</button>
+  </nav>
+
+  <section id="fold">
+   <p class="note">The icon is the front of the crate. Click the crate, or:</p>
+   <div class="row"><button data-do="toggle">Fold / unfold</button></div>
+   <h2>Frame by frame</h2>
+   <label>Position <output id="foldOut">0 ms</output><input id="foldT" type="range" min="0" max="1890" step="5" value="0"></label>
+   <div class="row" id="foldMarks"></div>
+   <h2>Pace</h2>
+   <label>Play the whole fold in <output id="paceOut">1890 ms</output><input id="pace" type="range" min="600" max="4000" step="10" value="1890"></label>
+   <div class="row"><button data-do="playFold">Fold at this pace</button><button data-do="playUnfold">Unfold at this pace</button></div>
+  </section>
+
+  <section id="open">
+   <p class="note">From folded flat, the walls rise. With the front standing, all four; with it folded down, the front stays where it lies. Choose which on the Records tab.</p>
+   <div class="row"><button data-do="raise">Raise the walls</button><button data-do="lower">Lower them</button></div>
+   <h2>Frame by frame</h2>
+   <label>Position <output id="openOut">0 ms</output><input id="openT" type="range" min="0" max="1290" step="5" value="0"></label>
+   <h2>Pace</h2>
+   <label>Raise in <output id="openPaceOut">1290 ms</output><input id="openPace" type="range" min="400" max="3000" step="10" value="1290"></label>
+   <h2>Camera</h2>
+   <div class="row"><button data-do="camAbove">From above</button><button data-do="camRecords">Records view</button></div>
+  </section>
+
+  <section id="records">
+   <p class="note">Hover a name or move through the crate. Move away and they all sit back down. Scroll and arrow keys work too; Escape puts them back.</p>
+   <div class="row"><button data-do="drop">Lower the records in</button><button data-do="side">Side view</button></div>
+   <h2>The items</h2>
+   <p class="note">A folder in one of the icon's hues, the crate's own colour, darker. No picture, no words. The list names it.</p>
+   <div class="row" id="styles"><button data-style="moulded">Moulded like the crate</button><button data-style="plain">Plain</button></div>
+   <div class="row" id="cuts"><button data-cut="folder">Cut as a folder, with a tab</button><button data-cut="card">Cut as a card</button></div>
+   <label>Darker than the crate by <output id="darkOut">70%</output><input id="dark" type="range" min="0" max="90" step="1" value="70"></label>
+   <canvas id="flat" width="1176" height="894" style="width:100%;border-radius:8px;display:block;margin:4px 0 2px"></canvas>
+   <p class="note">The chosen item, flat, as it is printed. The crate cuts the outline.</p>
+   <h2>Moving the cursor through the crate</h2>
+   <div class="row"><button data-do="axDepth">Front to back</button><button data-do="axAcross">Left to right</button><button data-do="axPick">Touch a record</button></div>
+   <p class="note" id="axNote">Front to back: the bottom of the crate is the first record, the top is the last.</p>
+   <h2>Front of the crate</h2>
+   <div class="row"><button data-do="frontUp">Standing</button><button data-do="frontDown">Folded down</button></div>
+   <h2>Records</h2>
+   <label>How many <output id="nOut">6</output><input id="n" type="range" min="1" max="12" step="1" value="6"></label>
+   <label>Flip takes <output id="flipOut">520 ms</output><input id="flipMs" type="range" min="80" max="1500" step="10" value="520"></label>
+   <h2>How they sit</h2>
+   <label>Gap between records <output id="gapOut">140</output><input id="gap" type="range" min="20" max="140" step="2" value="140"></label>
+   <label>Extra lift of the chosen one <output id="liftOut">69%</output><input id="lift" type="range" min="0" max="100" step="1" value="69"></label>
+   <label>Lean back <output id="backOut">45°</output><input id="back" type="range" min="0" max="45" step="1" value="45"></label>
+   <label>Lean forward, at most <output id="fwdOut">60°</output><input id="fwd" type="range" min="10" max="60" step="1" value="60"></label>
+   <h2>Frame by frame</h2>
+   <label>Flip from the record before <output id="kOut">100%</output><input id="k" type="range" min="0" max="1" step="0.01" value="1"></label>
+   <pre id="tuned"></pre>
+  </section>
+
+  <section id="flight">
+   <p class="note">The folded crate leaves the shelf, travels to the dashed box and opens on the way. Then the records are lowered in.</p>
+   <div class="row"><button data-do="fly">Fly</button><button data-do="flyReset">Back to the shelf</button></div>
+   <label>Flight takes <output id="flyOut">1100 ms</output><input id="flyMs" type="range" min="400" max="3000" step="10" value="1100"></label>
+   <label>Records lowered in over <output id="dropOut">700 ms</output><input id="dropMs" type="range" min="200" max="2000" step="10" value="700"></label>
+  </section>
+
+  <h2>Page</h2>
+  <div class="row"><button data-do="theme">Light / dark page</button><button data-do="copy">Copy current values</button></div>
+  <p class="note" id="copied"></p>
+ </aside>
+</main>
+<div id="host"></div>
+<script type="module">
+import * as THREE from "three";
+import { createCrateFold } from "./crate-fold.js";
+import { drawItem, deepen } from "./crate-items.js";
+
+const $ = id => document.getElementById(id);
+const mount = $("mount"), list = $("list"), state = $("state"), host = $("host"), target = $("target");
+const TEX = { "front.png": "tex/front.png", "back.png": "tex/back.png",
+              "side.png": "tex/side.png", "floor.png": "tex/floor.png" };
+const WORDS = { closed: "closed", folding: "folding", folded: "folded flat", unfolding: "unfolding",
+                opening: "opening", open: "open at the front" };
+// The items are Cameron's real projects. Their images live in local/, which is never published.
+const ITEMS = [
+  { name: "Emesent", line: "Research from nothing, prototypes in code", year: "2025 – Present", tags: ["Autonomous mapping", "Coded prototypes"], hue: "#C0614B" },
+  { name: "Strike Analytics", line: "13 pivots, and the method that survived", year: "2023 – 2025", tags: ["0-to-1", "AI/ML"], hue: "#C3D2E1" },
+  { name: "Taxfix", line: "A feature for users I couldn't interview", year: "2020 – 2021", tags: ["Regulated fintech", "Research"], hue: "#D79A4D" },
+  { name: "Microbiome", line: "The brief was wrong", year: "2022 – 2024", tags: ["Healthcare", "Data visualisation"], hue: "#9EB29A" },
+  { name: "Sesame", line: "Proving demand before building", year: "2021 – 2022", tags: ["Growth", "A/B testing"], hue: "#C6BFD8" },
+  { name: "AI Digital Advisor", line: "From POC to production for 4.5M users", year: "2025", tags: ["Multi-agent", "Guardrails"], hue: "#E8B69B" },
+];
+const CRATE = "#C0614B";
+// Every item is the crate's own colour, darker. They are told apart by where their tabs sit
+// and by the list, not by colour: the crate and what is in it read as one object.
+let tone = "dark", darker = 0.70;
+const item = i => ({ ...ITEMS[i % ITEMS.length], n: i, img: PICS[i % ITEMS.length],
+                     hue: deepen(CRATE, darker) });
+const NAMES = ITEMS.map(v => v.name);
+
+const PICS = [];
+const pics = Promise.all(ITEMS.map((_, i) => new Promise(done => {
+  const im = new Image(); im.onload = () => { PICS[i] = im; done(); }; im.onerror = () => done();
+  im.src = `local/${i}.png`;
+})));
+
+// The items are drawn by crate-items.js, the same module the portfolio uses.
+let style = "moulded", cut = "folder";
+const cover = i => drawItem({ crate: CRATE, index: i, fold, darker, style, cut });
+const covers = n => Array.from({ length: n }, (_, i) => cover(i));
+
+let fold = null, mode = null, side = false, flown = false, frontWall = "up";
+const val = id => parseFloat($(id).value);
+
+function make(view, ready){
+  if (fold) fold.dispose();
+  mount.replaceChildren(); host.replaceChildren();
+  side = false; flown = false;
+  fold = createCrateFold({ THREE, mount, size: 560, view, front: frontWall, textures: TEX,
+    brightness: lightFor(),
+    onState: v => state.innerHTML = "Crate is <b>" + (WORDS[v] || v) + "</b>",
+    onReady: () => ready && ready() });
+  window.fold = fold;
+}
+function names(n){
+  list.replaceChildren(...Array.from({ length: n }, (_, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<i style="background:${item(i).hue}"></i>${item(i).name}`;
+    li.addEventListener("mouseenter", () => choose(i));
+    return li;
+  }));
+  mark();
+}
+const mark = () => { [...list.children].forEach((li, i) =>
+  li.setAttribute("aria-current", String(fold && i === fold.selected())));
+  flat(); };
+function flat(){
+  const c = $("flat"); if (!c || !fold || mode !== "records") return;
+  const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height);
+  if (fold.selected() >= 0) x.drawImage(cover(fold.selected()).image, 0, 0);
+  document.querySelectorAll("#styles button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.style === style)));
+  document.querySelectorAll("#cuts button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.cut === cut)));
+}
+// nothing hovered: they all sit back down in the crate
+function rest(){ if (mode === "records" && fold.selected() !== -1) { fold.select(-1, val("flipMs")); mark(); } }
+function choose(i){
+  const n = list.children.length;
+  i = Math.max(0, Math.min(n - 1, i));
+  if (i === fold.selected()) return;
+  fold.select(i, val("flipMs")); mark();
+}
+// the two fronts sit their records differently, so each starts from its own values
+function defaults(){
+  const v = frontWall === "up" ? { lift: 69, back: 45, gap: 140, fwd: 60, flip: 520 }
+                               : { lift: 30, back: 24, gap: 80, fwd: 60, flip: 260 };
+  $("lift").value = v.lift; $("liftOut").textContent = v.lift + "%";
+  $("back").value = v.back; $("backOut").textContent = v.back + "°";
+  $("gap").value = v.gap; $("gapOut").textContent = v.gap;
+  $("fwd").value = v.fwd; $("fwdOut").textContent = v.fwd + "°";
+  $("flipMs").value = v.flip; $("flipOut").textContent = v.flip + " ms";
+}
+function tuned(){
+  const v = fold.tune({ gap: val("gap"), lift: val("lift") / 100, backLean: val("back"), forwardLean: val("fwd") });
+  $("tuned").textContent =
+    `gap ${v.gap}${v.gapActual < v.gap ? " (" + v.gapActual + " fits)" : ""}   lift ${Math.round(v.lift * 100)}% (${v.liftUnits} units)\n` +
+    `lean back ${v.backLean}°   lean forward ${v.forwardLeanActual}°` +
+    (v.forwardLeanActual < v.forwardLean - 0.05 ? (v.front === "up" ? "  (stopped by the front wall)" : "  (stopped by the rim)") : "") +
+    `\nfront ${v.front === "up" ? "standing" : "folded down"}` +
+    `\nflip ${val("flipMs")} ms`;
+  mark();
+}
+
+const MODES = {
+  fold(){ list.style.display = "none"; target.style.display = "none"; make("front"); },
+  open(){ list.style.display = "none"; target.style.display = "none";
+          make("above", () => fold.set(1)); fold.set(1);
+          $("openT").max = frontWall === "up" ? 1890 : 1290; },
+  records(){ list.style.display = "block"; target.style.display = "none";
+             make("records"); fold.setRecords(covers(val("n"))); names(val("n")); tuned(); },
+  flight(){ list.style.display = "none"; make("above", () => fold.set(1)); fold.set(1); box(); },
+};
+function go(m){
+  mode = m;
+  document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === m));
+  MODES[m]();
+  history.replaceState(null, "", "#" + m);
+}
+function box(){
+  const s = $("stage").getBoundingClientRect(), a = fold.recordsAspect;
+  const size = Math.min(420, s.width * 0.42, (s.height - 40) * a);
+  const b = { left: s.left + 40, top: s.top + (s.height - size / a) / 2, size };
+  Object.assign(target.style, { display: "block", left: b.left + "px", top: b.top + "px",
+                                width: size + "px", height: size / a + "px" });
+  return b;
+}
+
+// a light page wants twice the light on the crate, or it reads as dull and heavy
+const lightFor = () => tone === "light" ? 2 : 1;
+function setTheme(which){
+  tone = which; document.body.classList.toggle("light", which === "light");
+  if (fold) fold.setBrightness(lightFor());
+}
+const DO = {
+  toggle: () => fold.toggle(),
+  playFold: () => fold.play(1, val("pace")),
+  playUnfold: () => fold.play(0, val("pace")),
+  raise: () => fold.present(val("openPace"), 1),
+  lower: () => fold.present(val("openPace"), 0),
+  camAbove: () => make("above", () => { fold.setOpenFront(); }) || fold.setOpenFront(),
+  camRecords: () => make("records"),
+  drop: () => { fold.dropRecords(covers(val("n")), 700).then(mark); },
+  frontUp: () => { frontWall = "up"; defaults(); go(mode); },
+  frontDown: () => { frontWall = "down"; defaults(); go(mode); },
+  axDepth: () => { axis = "depth"; $("axNote").textContent = "Front to back: the bottom of the crate is the first record, the top is the last."; },
+  axAcross: () => { axis = "across"; $("axNote").textContent = "Left to right: the left edge of the crate is the first record, the right edge is the last."; },
+  axPick: () => { axis = "pick"; $("axNote").textContent = "Touch a record: only the record directly under the cursor. This is how it was."; },
+  side: () => { side = !side; fold.__camera(side ? "side" : null); },
+  async fly(){
+    if (flown) return;
+    flown = true;
+    fold.takeover(host, mount.getBoundingClientRect());
+    await fold.flyTo(box(), val("flyMs"));
+    await fold.dropRecords(covers(6), val("dropMs"), 2);
+  },
+  flyReset: () => go("flight"),
+  theme: () => setTheme(tone === "dark" ? "light" : "dark"),
+  copy(){
+    const v = { fold: { pace: val("pace") }, present: { pace: val("openPace") },
+                page: tone, itemColour: deepen(CRATE, darker), darkerBy: darker,
+                records: { count: val("n"), flipMs: val("flipMs"), cursor: axis, item: style, cut, ...fold.tune?.() },
+                flight: { ms: val("flyMs"), dropMs: val("dropMs") } };
+    navigator.clipboard.writeText(JSON.stringify(v, null, 2));
+    $("copied").textContent = "Copied. Paste it to me and I will set these as the defaults.";
+  },
+};
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.style || b.dataset.cut) {
+    style = b.dataset.style || style; cut = b.dataset.cut || cut;
+    const keep = fold.selected();
+    fold.setRecords(covers(val("n"))); fold.seek({ to: keep }); tuned();
+    return;
+  }
+  if (b.dataset.mode) go(b.dataset.mode);
+  else if (b.dataset.do) DO[b.dataset.do]();
+  else if (b === mount && mode === "fold") fold.toggle();
+  else if (b === mount && mode === "records") { /* a click would open the project */ }
+});
+
+// sliders
+const show = (id, out, f) => $(id).addEventListener("input", () => { $(out).textContent = f(val(id)); });
+show("pace", "paceOut", v => v + " ms"); show("openPace", "openPaceOut", v => v + " ms");
+show("flipMs", "flipOut", v => v + " ms"); show("flyMs", "flyOut", v => v + " ms");
+show("dropMs", "dropOut", v => v + " ms");
+$("foldT").addEventListener("input", () => { $("foldOut").textContent = val("foldT") + " ms"; fold.set(val("foldT") / 1890); });
+$("openT").addEventListener("input", () => { $("openOut").textContent = val("openT") + " ms";
+  if (frontWall === "up") fold.set(1 - val("openT") / 1890);
+  else fold.seek({ present: Math.max(0.0001, val("openT") / 1290) }); });
+for (const [ms, name] of [[0, "rest"], [130, "squeezed"], [240, "free"], [760, "front down"], [1400, "back down"], [1890, "flat"]]) {
+  const b = document.createElement("button"); b.textContent = name;
+  b.addEventListener("click", () => { $("foldT").value = ms; $("foldT").dispatchEvent(new Event("input")); });
+  $("foldMarks").appendChild(b);
+}
+$("n").addEventListener("input", () => { $("nOut").textContent = val("n"); fold.setRecords(covers(val("n"))); names(val("n")); tuned(); });
+for (const [id, out, f] of [["gap", "gapOut", v => v], ["lift", "liftOut", v => v + "%"],
+                            ["back", "backOut", v => v + "°"], ["fwd", "fwdOut", v => v + "°"]])
+  $(id).addEventListener("input", () => { $(out).textContent = f(val(id)); tuned(); });
+$("flipMs").addEventListener("input", tuned);
+$("dark").addEventListener("input", () => {
+  darker = val("dark") / 100; $("darkOut").textContent = val("dark") + "%";
+  const keep = fold.selected();
+  fold.setRecords(covers(val("n"))); fold.seek({ to: keep }); names(val("n")); tuned();
+});
+$("k").addEventListener("input", () => {
+  const to = fold.selected(), k = val("k");
+  $("kOut").textContent = Math.round(k * 100) + "%";
+  fold.seek({ from: Math.max(0, to - 1), to, k });
+});
+
+// the crate itself: hover a record, scroll through, arrow keys
+let axis = "depth";
+mount.addEventListener("mousemove", e => { if (mode !== "records" || side) return;
+  const i = axis === "pick" ? fold.pick(e.clientX, e.clientY) : fold.through(e.clientX, e.clientY, axis);
+  if (i >= 0) choose(i); else rest(); });
+mount.addEventListener("mouseleave", rest);
+list.addEventListener("mouseleave", rest);
+let wheel = 0;
+mount.addEventListener("wheel", e => { if (mode !== "records") return; e.preventDefault();
+  wheel += e.deltaY; if (Math.abs(wheel) > 40) { choose(fold.selected() + Math.sign(wheel)); wheel = 0; } }, { passive: false });
+addEventListener("keydown", e => { if (mode !== "records") return;
+  if (e.key === "Escape") rest();
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); choose(fold.selected() + 1); }
+  if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); choose(fold.selected() - 1); } });
+addEventListener("resize", () => { if (fold) fold.resize(560); if (mode === "flight" && !flown) box(); });
+
+await pics;
+const want = location.hash.slice(1).split("/");
+if (want[1] === "moulded" || want[1] === "plain") style = want[1];
+if (want[2] === "card" || want[2] === "folder") cut = want[2];
+go(["fold", "open", "records", "flight"].includes(want[0]) ? want[0] : "records");
+if (want[4] === "light") setTheme("light");
+if (want[3] && want[3] !== "-") { fold.seek({ to: parseInt(want[3], 10) }); mark(); }
+</script></body></html>
