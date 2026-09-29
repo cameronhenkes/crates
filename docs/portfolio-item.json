@@ -32,6 +32,16 @@
           "caption": "Every dimension lives in one geometry dict, measured off a reference photo. Every shade is an offset from the body colour."
         },
         {
+          "type": "text",
+          "text": "Named, and then measured. The redline is generated from the same numbers the icon is drawn from, so the two cannot disagree."
+        },
+        {
+          "type": "image",
+          "src": "/images/projects/crates/redline-dimensions.png",
+          "alt": "The crate icon with every dimension marked in red: 900 wide, 684 tall, a tab 330 wide rising 96, rails of 108, a foot of 80",
+          "caption": "A folder's silhouette, a crate's construction."
+        },
+        {
           "type": "image",
           "src": "/images/projects/crates/palette.png",
           "alt": "Twelve crate folder icons in different colours",
@@ -62,8 +72,8 @@
         {
           "type": "image",
           "src": "/images/projects/crates/in-finder.png",
-          "alt": "A Finder window showing fourteen project folders, each a differently coloured crate",
-          "caption": "Inheritance in practice: everything under a category shares its colour."
+          "alt": "A Finder window of twelve folders, each a differently coloured crate, on the macOS desktop",
+          "caption": "A capture of Finder, not a drawing of it."
         }
       ]
     },
@@ -77,7 +87,7 @@
         {
           "type": "image",
           "src": "/images/projects/crates/transparency.png",
-          "alt": "Crate icons over a busy colourful background, with the background visible through each perforation",
+          "alt": "Three crate icons over the Golden Gate Bridge, with the bridge and rocks visible through every perforation",
           "caption": "Deliberately busy background, to prove the holes are holes."
         },
         {
@@ -104,10 +114,11 @@
           "text": "Hover is deliberately almost nothing, a four pixel lift over 140ms. It is seen constantly, so it says 'this responds' and gets out of the way. The click is where the budget goes, because it is rare and it explains something."
         },
         {
-          "type": "image",
-          "src": "/images/projects/crates/motion-fold.png",
-          "alt": "Sixteen frames of the crate folding, from the closed icon to a flat stack inside its base",
-          "caption": "1.9 seconds. Each end wall is squeezed, pops free, then is lowered. The sides follow in one easy motion."
+          "type": "video",
+          "src": "/images/projects/crates/fold.mp4",
+          "poster": "/images/projects/crates/motion-fold.png",
+          "alt": "The crate folding flat, front then back then left then right, and standing up again",
+          "caption": "1.9 seconds each way. Each end wall is squeezed, pops free, then is lowered. The sides follow in one easy motion."
         },
         {
           "type": "text",
