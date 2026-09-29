@@ -161,6 +161,7 @@ function make(view, ready){
   mount.replaceChildren(); host.replaceChildren();
   side = false; flown = false;
   fold = createCrateFold({ THREE, mount, size: 560, view, front: frontWall, textures: TEX,
+    brightness: lightFor(),
     onState: v => state.innerHTML = "Crate is <b>" + (WORDS[v] || v) + "</b>",
     onReady: () => ready && ready() });
   window.fold = fold;
@@ -238,8 +239,11 @@ function box(){
   return b;
 }
 
+// a light page wants twice the light on the crate, or it reads as dull and heavy
+const lightFor = () => tone === "light" ? 2 : 1;
 function setTheme(which){
   tone = which; document.body.classList.toggle("light", which === "light");
+  if (fold) fold.setBrightness(lightFor());
 }
 const DO = {
   toggle: () => fold.toggle(),

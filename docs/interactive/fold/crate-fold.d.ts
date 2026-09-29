@@ -53,6 +53,11 @@ export type CrateFoldOptions = {
    */
   recordLit?: boolean;
   /**
+   * How much light falls on the crate. 1 (the default) suits a dark page. On a light page use
+   * about 2, which brings the lit faces up to the colour of the flat icon.
+   */
+  brightness?: number;
+  /**
    * Shape of the records frame, width over height. Default 0.72: a portrait frame with the crate
    * at its foot and room above for a folder drawn out of it. A canvas with view "records" is this
    * shape, and flyTo() lands in a box this shape.
@@ -124,6 +129,8 @@ export type CrateFoldHandle = {
    * `flipDuration` by default (520ms front up, 260ms front down), cubic-bezier(0.2, 0, 0, 1).
    */
   select(index: number, ms?: number): Promise<void>;
+  /** Change the brightness on a live crate, for a page that switches between light and dark. */
+  setBrightness(value: number): void;
   /** The record select() last aimed at, or -1 when none is chosen. */
   selected(): number;
   /**

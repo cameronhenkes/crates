@@ -10,8 +10,8 @@ All 2x, transparent or composed on their own background, in `docs/media/`.
 | File | Size | What it shows | Use it for |
 |---|---|---|---|
 | `in-finder.png` | 2560×1600 | A real Finder window, captured, of twelve folders each a different crate, on the macOS default desktop | **The hero.** It is the only image that proves the thing works. |
-| `fold.mp4` / `fold.gif` | 1920×1080, 6.4s | The crate folding flat and standing again | Beside the interactive piece, or in place of it. |
-| `records.mp4` / `records.gif` | 1920×1080, 9.7s | The record crate: folders sliding up one at a time | The collection page's behaviour, shown. |
+| `fold.mp4` / `fold.gif`, and `fold-dark` | 1920×1080, 6.4s | The crate folding flat and standing again, on a blank page | Beside the interactive piece, or in place of it. |
+| `records.mp4` / `records.gif`, and `records-dark` | 1920×1080, 9.7s | The record crate: folders sliding up one at a time, on a blank page | The collection page's behaviour, shown. |
 | `redline-dimensions.png` | 3800×2640 | The crate with every dimension marked in red | What makes it a crate and not a folder with holes. |
 | `redline-detail.png` | 3800×2840 | The perforations, enlarged, with sizes and spacing | Evidence of rigour. |
 | `anatomy.png` | 2480×1600 | The crate's parts called out, plus the derived OKLab ramp | The thinking. Keep it; the redlines measure, this names. |
@@ -21,8 +21,8 @@ All 2x, transparent or composed on their own background, in `docs/media/`.
 | `hero.png` | 2400×1350 | Three crates on the desktop | Decorative. |
 | `motion-fold.png` | 2592×1302 | The fold as sixteen labelled frames | A still fallback for the video. |
 
-The desktop picture in these is Apple's default. It appears as a backdrop, the way it does in
-any screenshot of a Mac.
+The desktop picture in the stills is Apple's default. It appears as a backdrop, the way it
+does in any screenshot of a Mac. The videos have no backdrop: a blank page, light or dark.
 
 Copy into the portfolio as `public/images/projects/crates/`.
 

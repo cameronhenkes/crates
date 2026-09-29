@@ -1115,3 +1115,20 @@ as it asks for it; the module holds that second change until the old one has
 come down. `now: true` overrides, for a logo that loads late.
 
 The new face must have the same tab and aspect. The outline is cut once.
+
+## Brightness, and videos on a blank page (30 Sep 2026)
+
+Cameron: the video "shouldn't appear against the wallpaper, just a blank page", and the 3D
+crate is "too dark" on a white background, though "okay for a dark mode".
+
+Why it was dark: the crate's lamps were set on a dark page, where the crate is the brightest
+thing in view. The same render on white is surrounded by something brighter than itself and
+reads as dull and heavy. Measured on the foot rail: the flat icon is (196, 101, 79); the 3D
+crate at the old lighting was (135, 68, 52).
+
+- `brightness` option and `setBrightness()`. 1 for a dark page, 2 for a light one. At 2 the
+  foot rail is (185, 96, 75), close to the icon, and nothing clips. I first guessed 1.6 and
+  wrote that into the docs before measuring; 1.6 gives (168, 86, 67), still short.
+- The videos have no backdrop. A picture behind the object competes with it, and the crate's
+  rust sat badly against the bridge. Light and dark versions of each.
+- The stills keep the desktop picture: they show the icon where an icon lives.

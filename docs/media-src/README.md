@@ -6,7 +6,7 @@ Everything in `docs/media/` that can be rebuilt is rebuilt from here.
 |---|---|---|
 | `in-finder.png`, `hero.png`, `transparency.png`, `palette.png` | `build-stills.py` | the wallpaper, a Finder capture, the icons |
 | `redline-dimensions.png`, `redline-detail.png` | `build-redlines.py` | the generator's geometry |
-| `fold.mp4`, `fold.gif`, `records.mp4`, `records.gif` | `capture.py` | the fold module, frame by frame |
+| `fold`, `records`, `fold-dark`, `records-dark`, each as `.mp4` and `.gif` | `capture.py` | the fold module, frame by frame, on a blank page |
 
 `anatomy.png`, `sizes.png` and `motion-fold.png` were made earlier and are kept as they are.
 

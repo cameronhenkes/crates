@@ -14,44 +14,35 @@ import { createCrateFold } from "../interactive/fold/crate-fold.js";
 import { drawItem } from "../interactive/fold/crate-items.js";
 
 const q = new URLSearchParams(location.search), scene = q.get("scene") || "fold";
+// The page the animation is shown on: blank, light or dark. No picture behind it; the video is
+// of the object, and a backdrop competes with it.
+const page = q.get("page") === "dark" ? "dark" : "light";
+const PAGE = { light: { bg: "#FFFFFF", brightness: 2 }, dark: { bg: "#14161A", brightness: 1 } }[page];
+const name = page === "dark" ? scene + "-dark" : scene;
 const FPS = 60, W = 1920, H = 1080;
 const out = document.getElementById("out"), x = out.getContext("2d");
 const TEX = { "front.png": "../interactive/fold/tex/front.png", "back.png": "../interactive/fold/tex/back.png",
               "side.png": "../interactive/fold/tex/side.png", "floor.png": "../interactive/fold/tex/floor.png" };
-const wall = await new Promise(done => { const im = new Image(); im.onload = () => done(im); im.src = "local/wallpaper.png"; });
 
-// where on the wallpaper, and how big the crate's canvas is, per scene
 const SCENES = {
-  // over the water and the hills, with the bridge at the edge: a rust crate in front of a rust
-  // bridge loses its outline
-  fold:    { view: "front",   size: 880, focus: [0.10, 0.42], zoom: 1.42 },
-  records: { view: "records", size: 740, focus: [0.10, 0.42], zoom: 1.42 },
+  fold:    { view: "front",   size: 880 },
+  records: { view: "records", size: 740 },
 };
 const S = SCENES[scene];
 const ready = Promise.withResolvers();
-const fold = createCrateFold({ THREE, mount: document.getElementById("stage"), size: S.size, view: S.view,
+const fold = createCrateFold({ THREE, mount: document.getElementById("stage"), size: S.size, view: S.view, brightness: PAGE.brightness,
                                textures: TEX, onReady: ready.resolve });
 await ready.promise;
 const gl = document.querySelector("#stage canvas");
 
-function backdrop(){
-  const s = Math.max(W / wall.width, H / wall.height) * S.zoom;
-  const w = wall.width * s, h = wall.height * s;
-  x.filter = "none"; x.globalAlpha = 1;
-  x.drawImage(wall, -(w - W) * S.focus[0], -(h - H) * S.focus[1], w, h);
-}
 function paint(){
-  backdrop();
+  x.fillStyle = PAGE.bg; x.fillRect(0, 0, W, H);
   const w = S.size, h = Math.round(S.size / fold.aspect);
-  const px = Math.round((W - w) / 2), py = Math.round((H - h) / 2) + (scene === "records" ? -10 : 0);
-  // the crate's own shape, holes and all, as its shadow
-  x.save(); x.filter = "blur(26px) brightness(0)"; x.globalAlpha = 0.42;
-  x.drawImage(gl, px, py + 34, w, h); x.restore();
-  x.drawImage(gl, px, py, w, h);
+  x.drawImage(gl, Math.round((W - w) / 2), Math.round((H - h) / 2), w, h);
 }
 async function save(i){
   const blob = await new Promise(r => out.toBlob(r, "image/png"));
-  await fetch(`/frame/${scene}/${String(i).padStart(5, "0")}`, { method: "POST", body: blob });
+  await fetch(`/frame/${name}/${String(i).padStart(5, "0")}`, { method: "POST", body: blob });
 }
 
 // ---- timelines: a list of [seconds, paint-at(k)] beats, k running 0..1 within the beat
@@ -81,6 +72,6 @@ for (const [secs, at] of beats) {
   const frames = Math.round(secs * FPS);
   for (let f = 0; f < frames; f++) { at(frames > 1 ? f / (frames - 1) : 1); paint(); await save(i++); }
 }
-await fetch(`/done/${scene}/${i}`, { method: "POST" });
+await fetch(`/done/${name}/${i}`, { method: "POST" });
 document.title = "done " + i;
 </script></body></html>

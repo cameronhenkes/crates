@@ -42,7 +42,9 @@ function cover(i){
   return {image: c, aspect: c.width / c.height};
 }
 const n = parseInt(q.get("n") || "0", 10);
+if (q.get("page") === "light") document.documentElement.style.background = document.body.style.background = "#ffffff";
 const fold = createCrateFold({ THREE, mount: b, size: 520, view, front: frontWall,
+  brightness: parseFloat(q.get("brightness") || "1"),
   textures: { "front.png": "tex/front.png", "back.png": "tex/back.png",
               "side.png": "tex/side.png", "floor.png": "tex/floor.png" },
   onState: v => s.textContent = v,

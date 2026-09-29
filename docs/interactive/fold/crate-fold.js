@@ -15,6 +15,7 @@
 export function createCrateFold({ THREE, mount, textures, size = 460, onState = () => {}, onReady = () => {},
   palette: P = [0xB2543F, 0x9C4B38, 0xCE7560, 0xE0907C], view = "front",
   recordEdge = 0xE8E2D6, recordRadius = 30, recordLit = true, recordsAspect = 0.72,
+  brightness = 1,
   front: frontWall = "up" }) {
 // front: what the display crate does with its front wall. "up" keeps it standing, so the crate is
 // still the icon and the chosen record slides up out of it. "down" folds it away and shows the
@@ -79,8 +80,13 @@ renderer.domElement.style.cssText = "display:block;width:100%;height:auto";
 // Low FOV from far away reads as near-orthographic, so the resting frame is
 // the icon rather than a photograph of it.
 const camera = new THREE.PerspectiveCamera(FOV, ASPECT, 10, 12000);
-scene.add(new THREE.AmbientLight(0xffffff, 1.05));
-const key = new THREE.DirectionalLight(0xffffff, 0.45);
+// brightness: how much light falls on the crate. 1 suits a dark page, where the crate is the
+// bright thing. On a light page the same crate reads as dull and heavy, and wants about 2,
+// which brings its lit faces up to the colour of the icon.
+const AMBIENT = 1.05, KEY = 0.45;
+const ambient = new THREE.AmbientLight(0xffffff, AMBIENT * brightness);
+scene.add(ambient);
+const key = new THREE.DirectionalLight(0xffffff, KEY * brightness);
 key.position.set(-500, 900, 1200); scene.add(key);
 
 // Textures load async. Rendering once at startup paints an empty canvas,
@@ -989,6 +995,8 @@ function resize(px){
   apply(t);
 }
 const selected = () => sel;
+/** Change how much light falls on the crate, for a page that changes between light and dark. */
+function setBrightness(v){ ambient.intensity = AMBIENT * v; key.intensity = KEY * v; apply(t); }
 /** Change how the records sit: {gap, lift, backLean, forwardLean}. Forward lean is a ceiling;
  *  the record still stops where it would rest on the rim. Returns the values in force. */
 function tune(v = {}){
@@ -1080,6 +1088,6 @@ manager.onLoad = () => { if (!dead) { apply(t); onReady(); } };
 apply(t);
 if (view === "records") settled();
 return { toggle, set, play, takeover, dolly, land, setPrints,
-         setOpenFront, present, setRecords, dropRecords, select, selected, updateRecord, pick, through, outline, flyTo, flyBack, resize, tune, seek, __camera, __angles, __gaps,
+         setOpenFront, present, setRecords, dropRecords, select, selected, updateRecord, setBrightness, pick, through, outline, flyTo, flyBack, resize, tune, seek, __camera, __angles, __gaps,
          dispose, aspect: ASPECT, recordsAspect, tabHeight: TAB_H, tabWidth: TAB_W, tabRun: TAB_RUN / REC_W, duration: TOTAL, presentDuration: UP ? TOTAL : P_TOTAL, flipDuration: FLIP_MS };
 }

@@ -112,7 +112,8 @@ It also stands open as a record crate, with folders in it that slide up to be lo
 
 ![Folders sliding up out of the crate one at a time](docs/media/records.gif)
 
-Both are in full quality as `docs/media/fold.mp4` and `docs/media/records.mp4`. To try them,
+Both are in full quality as `docs/media/fold.mp4` and `docs/media/records.mp4`, and on a dark
+page as `fold-dark.mp4` and `records-dark.mp4`. To try them,
 run `docs/interactive/fold/serve.sh`.
 
 ## Your own styles
