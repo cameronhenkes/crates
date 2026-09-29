@@ -9,3 +9,6 @@ build/
 
 # your own project images for the playground; never published
 docs/interactive/fold/local/
+
+# sources for the media that are not ours to publish: the system wallpaper, raw captures
+docs/media-src/local/

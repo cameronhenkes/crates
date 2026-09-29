@@ -7,7 +7,9 @@ Ships with one style: a folding produce crate drawn in the silhouette of a
 macOS folder, generated in any colour from a single hex. Bring your own style
 if you'd rather.
 
-![Fourteen project folders in a Finder window, each a differently coloured crate](docs/media/in-finder.png)
+![A Finder window of twelve folders, each a differently coloured crate](docs/media/in-finder.png)
+
+That is a capture of Finder, not a drawing of it.
 
 ## Install
 
@@ -99,13 +101,19 @@ reinstalls — and modern macOS resolves many icons through the `Assets.car`
 beside it, so the edit may not even take. Applying icons to the folders you
 actually care about is the better trade.
 
-## An interactive version
+## It folds
 
-`docs/interactive/` has the crate as a component that folds flat when you
-click it -- a plain `<button>`, CSS transitions, no motion library. There is a
-standalone HTML version and a React one.
+The icon is the front of a crate. `docs/interactive/fold/` has the rest of it: click and it
+folds the way the real one does, front, back, left, right.
 
-![Five frames of the crate folding flat](docs/media/motion-fold.png)
+![The crate folding flat and standing up again](docs/media/fold.gif)
+
+It also stands open as a record crate, with folders in it that slide up to be looked at.
+
+![Folders sliding up out of the crate one at a time](docs/media/records.gif)
+
+Both are in full quality as `docs/media/fold.mp4` and `docs/media/records.mp4`. To try them,
+run `docs/interactive/fold/serve.sh`.
 
 ## Your own styles
 
@@ -131,6 +139,12 @@ the same thing Apple does in its own icons, and the reason the small sizes stay
 legible:
 
 ![Both detail levels from 256px down to 16px](docs/media/sizes.png)
+
+Measured, from the generator's own numbers:
+
+![The crate with its dimensions marked in red](docs/media/redline-dimensions.png)
+
+![The perforations, enlarged, with their sizes and spacing](docs/media/redline-detail.png)
 
 ## Credits
 

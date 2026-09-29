@@ -9,13 +9,20 @@ All 2x, transparent or composed on their own background, in `docs/media/`.
 
 | File | Size | What it shows | Use it for |
 |---|---|---|---|
-| `in-finder.png` | 2480×1580 | A Finder window in icon view, all 14 project folders coloured, one selected | **The hero.** It is the only image that proves the thing works. |
-| `anatomy.png` | 2480×1600 | The crate with its parametric dimensions called out, plus the derived OKLab ramp | The thinking. Use it where the case study explains the system. |
-| `motion-fold.png` | 2592×1302 | The fold as sixteen frames, closed icon to flat stack, each labelled in milliseconds | Beside the interactive piece, or instead of it as a fallback. |
-| `transparency.png` | 2000×680 | Crates over a deliberately busy background, wallpaper visible through every hole | The one craft decision a viewer would otherwise miss. |
-| `sizes.png` | 1640×1560 | Both detail levels, 256px down to 16px | Evidence of rigour. Pairs with the "two detail levels" paragraph. |
-| `palette.png` | 1360×1440 | All twelve colours | Index shot, or the collection thumbnail. |
-| `hero.png` | 2400×1350 | Three crates on a colour-field background | Decorative. Weakest of the set — use only if a pure visual is needed. |
+| `in-finder.png` | 2560×1600 | A real Finder window, captured, of twelve folders each a different crate, on the macOS default desktop | **The hero.** It is the only image that proves the thing works. |
+| `fold.mp4` / `fold.gif` | 1920×1080, 6.4s | The crate folding flat and standing again | Beside the interactive piece, or in place of it. |
+| `records.mp4` / `records.gif` | 1920×1080, 9.7s | The record crate: folders sliding up one at a time | The collection page's behaviour, shown. |
+| `redline-dimensions.png` | 3800×2640 | The crate with every dimension marked in red | What makes it a crate and not a folder with holes. |
+| `redline-detail.png` | 3800×2840 | The perforations, enlarged, with sizes and spacing | Evidence of rigour. |
+| `anatomy.png` | 2480×1600 | The crate's parts called out, plus the derived OKLab ramp | The thinking. Keep it; the redlines measure, this names. |
+| `transparency.png` | 2000×680 | Crates over the bridge and rocks, desktop visible through every hole | The one craft decision a viewer would otherwise miss. |
+| `sizes.png` | 1640×1560 | Both detail levels, 256px down to 16px | Pairs with the "two detail levels" paragraph. |
+| `palette.png` | 2720×2100 | All twelve colours, named | Index shot, or the collection thumbnail. |
+| `hero.png` | 2400×1350 | Three crates on the desktop | Decorative. |
+| `motion-fold.png` | 2592×1302 | The fold as sixteen labelled frames | A still fallback for the video. |
+
+The desktop picture in these is Apple's default. It appears as a backdrop, the way it does in
+any screenshot of a Mac.
 
 Copy into the portfolio as `public/images/projects/crates/`.
 
